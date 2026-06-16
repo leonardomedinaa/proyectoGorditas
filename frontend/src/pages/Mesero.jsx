@@ -130,8 +130,20 @@ export default function Mesero() {
   }
 
   // ── Cobrar ──
-  const ordenDeMesa = (mesa) => ordenes.find(o => o.mesa_id === mesa.id && o.estado === 'abierta')
-
+  const ordenDeMesa = (mesa) => {
+    const ordenesAbiertas = ordenes.filter(o => o.mesa_id === mesa.id && o.estado === 'abierta') 
+    if (ordenesAbiertas.length === 0) return null
+    const granTotal = ordenesAbiertas.reduce((suma, o) => suma + o.total, 0)
+    const todosLosItems = ordenesAbiertas.flatMap(o => o.items)
+    return {
+      id: ordenesAbiertas[0].id, // ID de referencia para el backend (la primera orden)
+      mesa_id: mesa.id,
+      mesa_nombre: mesa.nombre,
+      total: granTotal,          // <--- La suma de todas las órdenes juntas
+      items: todosLosItems,      // <--- Todos los platillos combinados
+      ordenes_ids: ordenesAbiertas.map(o => o.id) // Lista de todos los IDs afectados
+    }
+}
   const abrirPago = (orden) => {
     setModalPago(orden)
     setPagos([{ metodo: 'efectivo', monto: String(orden.total.toFixed(2)) }])
@@ -192,10 +204,8 @@ export default function Mesero() {
                     className={`mesa-card ${mesa.estado}`}
                     onClick={() => {
                       setMesaSeleccionada(mesa)
-                      if (mesa.estado === 'disponible') {
                         setCarrito([])
                         setModalOrden(true)
-                      }
                     }}
                   >
                     <span style={{ fontSize: 28 }}>🪑</span>
