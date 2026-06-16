@@ -249,14 +249,19 @@ async def actualizar_estado_item(orden_id: int, item_id: int, body: dict, db: Se
 
 @router.post("/{orden_id}/cerrar")
 async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = Depends(get_db)):
-    orden = db.query(Orden).options(
-        joinedload(Orden.mesa),
-        joinedload(Orden.items).joinedload(OrdenItem.producto),
-    ).filter(Orden.id == orden_id).first()
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
     if not orden or orden.estado != "abierta":
         raise HTTPException(status_code=400, detail="Orden no válida")
-
-    total = sum(i.precio_unitario * i.cantidad for i in orden.items)
+    
+    mesa_objeto = orden.mesa 
+    ordenes_abiertas = db.query(Orden).options(
+            joinedload(Orden.items).joinedload(OrdenItem.producto)
+        ).filter(
+            Orden.mesa_id == mesa_objeto.id,
+            Orden.estado == "abierta"
+        ).all()
+    
+    total = sum(i.precio_unitario * i.cantidad for orden in ordenes_abiertas for i in orden.items)
 
     # Registrar pagos
     for pago_data in data.pagos:
@@ -273,24 +278,26 @@ async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = De
         db.add(division)
 
     # Cerrar orden y liberar mesa
-    orden.estado = "pagada"
-    orden.cerrado_en = datetime.utcnow()
-    mesa = orden.mesa
-    # Verificar si mesa tiene otras órdenes abiertas
-    otras_ordenes = db.query(Orden).filter(
-        Orden.mesa_id == mesa.id, Orden.estado == "abierta", Orden.id != orden_id
-    ).count()
-    if otras_ordenes == 0:
-        mesa.estado = "disponible"
-
+    ahora = datetime.utcnow()
+    for o in ordenes_abiertas:
+        o.estado = "pagada"
+        o.cerrado_en = ahora
+    mesa_objeto.estado = "disponible"
     db.commit()
-
+    ids_cerrados = [o.id for o in ordenes_abiertas]
     await manager.notify_meseros({
         "tipo": "orden_cerrada",
         "orden_id": orden_id,
-        "mesa": {"id": mesa.id, "nombre": mesa.nombre, "estado": mesa.estado, "capacidad": mesa.capacidad}
+        "ordenes_afectadas": ids_cerrados,  # <--- Enviamos la lista de IDs al WebSocket
+        "mesa": {
+            "id": mesa_objeto.id, 
+            "nombre": mesa_objeto.nombre, 
+            "estado": mesa_objeto.estado, 
+            "capacidad": mesa_objeto.capacidad
+        }
     })
-    return {"ok": True, "total": total}
+    
+    return {"ok": True, "total": total, "ordenes_cerradas": len(ids_cerrados)}
 
 
 @router.get("/cocina/{estacion}")
