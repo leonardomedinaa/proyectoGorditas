@@ -125,7 +125,7 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             })
 
         # Agrupar por estación para envío a cocina
-        estacion = producto.estacion
+        estacion = "gorditas"
         if estacion not in items_por_estacion:
             items_por_estacion[estacion] = []
         items_por_estacion[estacion].append({
@@ -206,7 +206,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
         producto.stock -= item.cantidad
         db.add(InventarioMovimiento(producto_id=producto.id, cantidad_delta=-item.cantidad, motivo="venta"))
 
-        estacion = producto.estacion
+        estacion = "gorditas"
         if estacion not in items_por_estacion:
             items_por_estacion[estacion] = []
         items_por_estacion[estacion].append({
@@ -307,7 +307,6 @@ def ordenes_cocina(estacion: str, db: Session = Depends(get_db)):
         joinedload(OrdenItem.modificador),
         joinedload(OrdenItem.orden).joinedload(Orden.mesa),
     ).filter(
-        Producto.estacion == estacion,
         Orden.estado == "abierta",
         OrdenItem.estado_cocina != "listo"
     ).all()
