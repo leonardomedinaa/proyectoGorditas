@@ -56,6 +56,7 @@ export default function Mesero() {
   useEffect(() => {
     cargarDatos()
     const unsub = createWS(`mesero_${user.id}`, msg => {
+      console.log("¡Llegó un mensaje de la cocina!", msg);
       if (msg.tipo === 'mesa_actualizada') {
         setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
@@ -67,7 +68,16 @@ export default function Mesero() {
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
       if (msg.tipo === 'item_listo') {
-        toast(`✅ ${msg.producto} está listo`, 'success')
+        const identificadorMesa = msg.mesa 
+          ? (msg.mesa.toString().toLowerCase().includes('mesa') ? msg.mesa : `Mesa ${msg.mesa}`) 
+          : 'Mesa ?';
+
+        if (msg.estado_cocina === 'listo') {
+          toast(`¡Listo para entregar! ${identificadorMesa} — ${msg.producto} listo`, 'success')
+        } else if (msg.estado_cocina === 'preparando') {
+          toast(`En preparación: ${identificadorMesa} — ${msg.producto}`, 'info')
+        }
+        
         setOrdenes(prev => prev.map(o => {
           if (o.id !== msg.orden_id) return o
           return { ...o, items: o.items.map(i => i.id === msg.item_id ? { ...i, estado_cocina: msg.estado_cocina } : i) }
@@ -122,7 +132,7 @@ export default function Mesero() {
         comensal: c.comensal,
       }))
       await api.post('/ordenes/', { mesa_id: mesaSeleccionada.id, mesero_id: user.id, items })
-      toast('Comanda enviada a cocina ✅', 'success')
+      toast('Comanda enviada a cocina', 'success')
       setCarrito([])
       setModalOrden(false)
       setMesaSeleccionada(null)
@@ -163,7 +173,7 @@ export default function Mesero() {
         pagos: pagosValidos.map(p => ({ metodo: p.metodo, monto: parseFloat(p.monto) })),
         num_divisiones: numDivisiones > 1 ? numDivisiones : null,
       })
-      toast('Cuenta cerrada ✅', 'success')
+      toast('Cuenta cerrada', 'success')
       setModalPago(null)
       cargarDatos()
     } catch (e) {
@@ -240,7 +250,6 @@ export default function Mesero() {
         )}
 
         {/* ── TAB ÓRDENES ── */}
-        {/* ── TAB ÓRDENES ── */}
         {tab === 'ordenes' && (
           <>
             <h2 style={{ marginBottom: 16 }}>Mis Órdenes Activas</h2>
@@ -301,7 +310,7 @@ export default function Mesero() {
         )}
       </div>
 
-{/* ── MODAL NUEVA ORDEN ── */}
+      {/* ── MODAL NUEVA ORDEN ── */}
       {modalOrden && mesaSeleccionada && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 800, width: '95vw' }}>
@@ -344,24 +353,34 @@ export default function Mesero() {
 
               {/* Carrito Modificado con Control de Comensales */}
               <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg3)', borderRadius: 10, padding: 14, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <strong>🛒 Carrito ({carrito.length})</strong>
-                  
-                  {/* Selector del comensal al que se le asignará el siguiente platillo */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text2)' }}>Asignar a:</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+  
+                  {/* Línea 1: Título del carrito */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: 16 }}>🛒 Carrito ({carrito.length})</strong>
+                  </div>
+
+                  {/* Línea 2: Selector de comensal bien distribuido */}
+                  <div className="select-comensal-container">
+                    <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      Asignar productos a:
+                    </span>
                     <select 
                       value={comensalActivo} 
                       onChange={e => setComensalActivo(Number(e.target.value))}
-                      style={{ padding: '2px 4px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text1)' }}
+                      className="select-comensal"
                     >
-                      <option value={1}>Comensal 1</option>
-                      <option value={2}>Comensal 2</option>
-                      <option value={3}>Comensal 3</option>
-                      <option value={4}>Comensal 4</option>
-                      <option value={5}>Comensal 5</option>
+                      {Array.from({length: mesaSeleccionada?.capacidad || 4}, (_, index) => {
+                        const numeroComensal = index + 1;
+                        return (
+                          <option key={numeroComensal} value={numeroComensal}>
+                            Comensal {numeroComensal}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
+
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -478,15 +497,41 @@ export default function Mesero() {
           </div>
 
           {/* División de cuenta */}
-          <div style={{ marginBottom: 14 }}>
+          <div className='seccion-division'>
             <label>Dividir cuenta entre</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-              <input type="number" min="1" max="20" value={numDivisiones}
+            <div className='division-control'>
+              
+              {/* Botón de menos */}
+              <button 
+                type="button"
+                className="btn-division" 
+                onClick={() => setNumDivisiones(prev => Math.max(1, prev - 1))}
+              >
+                −
+              </button>
+
+              <input 
+                type="number" 
+                min="1" 
+                max="20" 
+                value={numDivisiones}
                 onChange={e => setNumDivisiones(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width: 80 }} />
-              <span style={{ color: 'var(--text2)', fontSize: 13 }}>persona(s)</span>
+                className='input-divisiones'
+              />
+
+              {/* Botón de más */}
+              <button 
+                type="button"
+                className="btn-division" 
+                onClick={() => setNumDivisiones(prev => Math.min(20, prev + 1))}
+              >
+                +
+              </button>
+
+              <span style={{ color: 'var(--text2)', fontSize: 13, marginLeft: 4 }}>persona(s)</span>
+              
               {numDivisiones > 1 && (
-                <span className="badge badge-blue">${(modalPago.total / numDivisiones).toFixed(2)} c/u</span>
+                <span className="badge-total-persona">${(modalPago.total / numDivisiones).toFixed(2)} c/u</span>
               )}
             </div>
           </div>

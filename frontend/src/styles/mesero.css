@@ -123,3 +123,129 @@
 .page .comanda-item .nombre { font-weight: 600; }
 .page .comanda-item .mod { color: #7c3aed; font-size: 0.8rem; font-weight: 600; }
 .page .comanda-item .comment { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; background-color: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* División de cuenta                                      */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor de la sección de división */
+.seccion-division {
+  background: var(--bg3);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.seccion-division label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text1);
+  margin-bottom: 8px;
+}
+
+/* Control del input de divisiones */
+.division-control {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.input-divisiones {
+  width: 60px; /* Lo encogemos un poquito para dar espacio a los botones */
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  color: var(--text1);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.input-divisiones::-webkit-outer-spin-button,
+.input-divisiones::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Eliminar flechas en Firefox */
+.input-divisiones[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Badge elegante para el total por persona */
+.badge-total-persona {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--blue);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.btn-division {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text1);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-division:hover {
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* Selector de comensales                                     */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor del selector para darle un orden alineado */
+.select-comensal-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.select-comensal {
+  flex: 1; /* Esto hace que el select ocupe el resto del ancho disponible de forma limpia */
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  color: var(--text1);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Efecto sutil al hacer foco */
+.select-comensal:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Estilo para las opciones de adentro en sistemas que lo soporten */
+.select-comensal option {
+  background: var(--bg1);
+  color: var(--text1);
+  padding: 6px;
+}
