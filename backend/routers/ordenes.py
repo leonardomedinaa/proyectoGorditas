@@ -27,6 +27,7 @@ def build_orden_out(orden: Orden) -> dict:
             "comentario": item.comentario,
             "estado_cocina": item.estado_cocina,
             "estacion": item.producto.estacion if item.producto else "",
+            "comensal": item.comensal,
         })
     return {
         "id": orden.id,
@@ -101,6 +102,7 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             cantidad=item_data.cantidad,
             precio_unitario=precio,
             comentario=item_data.comentario,
+            comensal=item_data.comensal,
         )
         db.add(item)
         db.flush()
@@ -134,6 +136,7 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             "cantidad": item_data.cantidad,
             "modificador": None,
             "comentario": item_data.comentario,
+            "comensal": item.comensal, # <--- AÑADIR ESTO
         })
 
     # Actualizar estado de mesa
@@ -199,6 +202,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
             cantidad=item_data.get("cantidad", 1),
             precio_unitario=precio,
             comentario=item_data.get("comentario"),
+            comensal=item_data.get("comensal", 1),
         )
         db.add(item)
         db.flush()
@@ -214,6 +218,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
             "producto": producto.nombre,
             "cantidad": item.cantidad,
             "comentario": item.comentario,
+            "comensal": item.comensal, # <--- AÑADIR ESTO
         })
 
     db.commit()
@@ -322,5 +327,6 @@ def ordenes_cocina(estacion: str, db: Session = Depends(get_db)):
             "cantidad": item.cantidad,
             "comentario": item.comentario,
             "estado_cocina": item.estado_cocina,
+            "comensal": item.comensal,
         })
     return result
