@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
+import '../styles/mesero.css'
 import { ShoppingCart, Search, Filter } from 'lucide-react'
 
 const ESTACIONES = ['gorditas', 'menudo', 'antojitos']

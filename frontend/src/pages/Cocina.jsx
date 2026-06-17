@@ -3,6 +3,7 @@ import { api, createWS } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
+import '../styles/cocina.css'
 import { Volume2, VolumeX, RefreshCw, CheckCircle } from 'lucide-react'
 
 // Mapeo de nombre de usuario a estación
@@ -15,7 +16,7 @@ function estacionDeUsuario(nombre) {
 }
 
 export default function Cocina() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth() 
   const toast = useToast()
   const estacion = estacionDeUsuario(user.nombre)
 
@@ -109,6 +110,14 @@ export default function Cocina() {
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, backgroundColor: 'rgba(30, 64, 175, 0.1)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
             {grupos.length} orden(es)
           </span>
+
+          <button 
+            className="btn btn-error btn-sm" 
+            onClick={logout}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span>🖲️</span> Salir
+          </button>
         </div>
       </div>
 
