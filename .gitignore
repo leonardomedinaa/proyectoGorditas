@@ -1,3 +1,11 @@
+# Python (Basura temporal del backend)
+**/__pycache__/
+*.pyc
+
+# Node (Dependencias locales)
+node_modules/
+package-lock.json
+
 # Logs
 logs
 *.log
