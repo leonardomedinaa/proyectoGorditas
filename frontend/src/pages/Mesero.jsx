@@ -29,6 +29,7 @@ export default function Mesero() {
   const [carrito, setCarrito] = useState([])
   const [filtroEstacion, setFiltroEstacion] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
+  const [comensalActivo, setComensalActivo] = useState(1)
 
   // Modal modificador
   const [prodPendiente, setProdPendiente] = useState(null)
@@ -78,7 +79,7 @@ export default function Mesero() {
 
   // ── Carrito helpers ──
   const agregarAlCarrito = (producto, modificador = null) => {
-    const key = `${producto.id}_${modificador?.id ?? 'base'}`
+    const key = `${producto.id}_${modificador?.id ?? 'base'}_c${comensalActivo}`
     setCarrito(prev => {
       const exists = prev.find(c => c.key === key)
       if (exists) return prev.map(c => c.key === key ? { ...c, cantidad: c.cantidad + 1 } : c)
@@ -87,7 +88,7 @@ export default function Mesero() {
         precio += modificador.precio_extra || 0
         if (modificador.descuento_pct > 0) precio = precio * (1 - modificador.descuento_pct / 100)
       }
-      return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '' }]
+  return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '', comensal: comensalActivo }]
     })
   }
 
@@ -118,12 +119,14 @@ export default function Mesero() {
         modificador_id: c.modificador?.id ?? null,
         cantidad: c.cantidad,
         comentario: c.comentario || null,
+        comensal: c.comensal,
       }))
       await api.post('/ordenes/', { mesa_id: mesaSeleccionada.id, mesero_id: user.id, items })
       toast('Comanda enviada a cocina ✅', 'success')
       setCarrito([])
       setModalOrden(false)
       setMesaSeleccionada(null)
+      setComensalActivo(1)
       cargarDatos()
     } catch (e) {
       toast(e.message, 'error')
@@ -206,6 +209,7 @@ export default function Mesero() {
                     onClick={() => {
                       setMesaSeleccionada(mesa)
                         setCarrito([])
+                        setComensalActivo(1) // <--- AÑADE ESTA LÍNEA
                         setModalOrden(true)
                     }}
                   >
@@ -236,6 +240,7 @@ export default function Mesero() {
         )}
 
         {/* ── TAB ÓRDENES ── */}
+        {/* ── TAB ÓRDENES ── */}
         {tab === 'ordenes' && (
           <>
             <h2 style={{ marginBottom: 16 }}>Mis Órdenes Activas</h2>
@@ -255,17 +260,40 @@ export default function Mesero() {
                       <button className="btn btn-primary btn-sm" onClick={() => abrirPago(orden)}>Cobrar</button>
                     </div>
                   </div>
-                  {orden.items.map(item => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ color: 'var(--accent)', fontWeight: 700, minWidth: 24 }}>{item.cantidad}x</span>
-                      <span style={{ flex: 1 }}>{item.producto_nombre}</span>
-                      {item.modificador_nombre && <span style={{ color: 'var(--purple)', fontSize: 12 }}>{item.modificador_nombre}</span>}
-                      <span className={`badge ${item.estado_cocina === 'listo' ? 'badge-green' : item.estado_cocina === 'preparando' ? 'badge-amber' : 'badge-gray'}`}>
-                        {item.estado_cocina}
-                      </span>
-                      <span style={{ color: 'var(--text2)', fontSize: 12 }}>${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
-                    </div>
-                  ))}
+                  
+                  {/* Mapeo de items ordenados por comensal */}
+                  {[...orden.items]
+                    .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
+                    .map(item => (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ color: 'var(--accent)', fontWeight: 700, minWidth: 24 }}>{item.cantidad}x</span>
+                        
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span>{item.producto_nombre}</span>
+                          
+                          {/* Badge del comensal asignado */}
+                          <span style={{ 
+                            fontSize: 10, 
+                            fontWeight: 600,
+                            color: 'var(--blue)', 
+                            background: 'rgba(59, 130, 246, 0.15)', 
+                            padding: '2px 6px', 
+                            borderRadius: 4,
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            👤 C{item.comensal || 1}
+                          </span>
+                        </div>
+
+                        {item.modificador_nombre && <span style={{ color: 'var(--purple)', fontSize: 12 }}>{item.modificador_nombre}</span>}
+                        
+                        <span className={`badge ${item.estado_cocina === 'listo' ? 'badge-green' : item.estado_cocina === 'preparando' ? 'badge-amber' : 'badge-gray'}`}>
+                          {item.estado_cocina}
+                        </span>
+                        <span style={{ color: 'var(--text2)', fontSize: 12 }}>${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
+                      </div>
+                    ))}
                 </div>
               ))
             }
@@ -273,7 +301,7 @@ export default function Mesero() {
         )}
       </div>
 
-      {/* ── MODAL NUEVA ORDEN ── */}
+{/* ── MODAL NUEVA ORDEN ── */}
       {modalOrden && mesaSeleccionada && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 800, width: '95vw' }}>
@@ -314,35 +342,68 @@ export default function Mesero() {
                 </div>
               </div>
 
-              {/* Carrito */}
+              {/* Carrito Modificado con Control de Comensales */}
               <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg3)', borderRadius: 10, padding: 14, overflow: 'hidden' }}>
-                <strong style={{ marginBottom: 10 }}>🛒 Carrito ({carrito.length})</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <strong>🛒 Carrito ({carrito.length})</strong>
+                  
+                  {/* Selector del comensal al que se le asignará el siguiente platillo */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text2)' }}>Asignar a:</span>
+                    <select 
+                      value={comensalActivo} 
+                      onChange={e => setComensalActivo(Number(e.target.value))}
+                      style={{ padding: '2px 4px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text1)' }}
+                    >
+                      <option value={1}>Comensal 1</option>
+                      <option value={2}>Comensal 2</option>
+                      <option value={3}>Comensal 3</option>
+                      <option value={4}>Comensal 4</option>
+                      <option value={5}>Comensal 5</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {carrito.length === 0
                     ? <p style={{ color: 'var(--text3)', fontSize: 13 }}>Agrega productos del menú</p>
-                    : carrito.map(c => (
-                      <div key={c.key} className="carrito-item">
-                        <div className="ci-info">
-                          <div className="ci-nombre">{c.producto.nombre}</div>
-                          {c.modificador && <div className="ci-mod">{c.modificador.nombre}</div>}
-                          <input
-                            placeholder="Comentario..."
-                            value={c.comentario}
-                            onChange={e => setCarrito(prev => prev.map(x => x.key === c.key ? { ...x, comentario: e.target.value } : x))}
-                            style={{ marginTop: 4, fontSize: 11, padding: '3px 6px' }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                          <span className="ci-precio">${(c.precio * c.cantidad).toFixed(2)}</span>
-                          <div className="qty-ctrl">
-                            <button className="qty-btn" onClick={() => cambiarCantidad(c.key, -1)}>−</button>
-                            <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13 }}>{c.cantidad}</span>
-                            <button className="qty-btn" onClick={() => cambiarCantidad(c.key, 1)}>+</button>
+                    : [...carrito]
+                        // Ordena numéricamente para agrupar los platos de cada comensal juntos en la vista
+                        .sort((a, b) => a.comensal - b.comensal)
+                        .map(c => (
+                          <div key={c.key} className="carrito-item" style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 8, flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                            
+                            {/* Encabezado del Item indicando el comensal */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span className="badge badge-blue" style={{ fontSize: 10, padding: '2px 6px', fontWeight: 600 }}>
+                                👤 Comensal {c.comensal}
+                              </span>
+                              <span className="ci-precio">${(c.precio * c.cantidad).toFixed(2)}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div className="ci-info" style={{ flex: 1, marginRight: 8 }}>
+                                <div className="ci-nombre">{c.producto.nombre}</div>
+                                {c.modificador && <div className="ci-mod">{c.modificador.nombre}</div>}
+                                <input
+                                  placeholder="Comentario..."
+                                  value={c.comentario}
+                                  onChange={e => setCarrito(prev => prev.map(x => x.key === c.key ? { ...x, comentario: e.target.value } : x))}
+                                  style={{ marginTop: 4, fontSize: 11, padding: '3px 6px', width: '100%' }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                                <div className="qty-ctrl">
+                                  <button className="qty-btn" onClick={() => cambiarCantidad(c.key, -1)}>−</button>
+                                  <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13 }}>{c.cantidad}</span>
+                                  <button className="qty-btn" onClick={() => cambiarCantidad(c.key, 1)}>+</button>
+                                </div>
+                                <button onClick={() => quitarItem(c.key)} style={{ background: 'none', color: 'var(--red)', fontSize: 11, cursor: 'pointer', border: 'none', padding: 0 }}>✕ quitar</button>
+                              </div>
+                            </div>
                           </div>
-                          <button onClick={() => quitarItem(c.key)} style={{ background: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>✕ quitar</button>
-                        </div>
-                      </div>
-                    ))
+                        ))
                   }
                 </div>
                 <div className="sep" />
