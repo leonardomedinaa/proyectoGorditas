@@ -53,8 +53,16 @@ export default function Cocina() {
         cargar()
       }
     })
-    return unsub
-  }, [])
+    // Actualización automática de respaldo cada 30 segundos
+    const intervalo = setInterval(() => {
+      cargar()
+    }, 5000)
+    // Limpieza al salir de la pantalla
+    return () => {
+      unsub()
+      clearInterval(intervalo)
+    }
+  }, [cargar, estacion])
 
   const cambiarEstado = async (ordenId, itemId, estado) => {
     try {
