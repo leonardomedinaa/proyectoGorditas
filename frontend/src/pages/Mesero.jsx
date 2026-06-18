@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
+import '../styles/mesero.css'
 import { ShoppingCart, Search, Filter } from 'lucide-react'
 
 const ESTACIONES = ['gorditas', 'menudo', 'antojitos']
@@ -21,13 +22,14 @@ export default function Mesero() {
   // Modal states
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [modalOrden, setModalOrden] = useState(false)
-  const [modalPago, setModalPago] = useState(null)   // orden a cobrar
+  const [modalPago, setModalPago] = useState(null)   
   const [modalDivision, setModalDivision] = useState(null)
 
   // Carrito
   const [carrito, setCarrito] = useState([])
   const [filtroEstacion, setFiltroEstacion] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
+  const [comensalActivo, setComensalActivo] = useState(1)
 
   // Modal modificador
   const [prodPendiente, setProdPendiente] = useState(null)
@@ -54,18 +56,28 @@ export default function Mesero() {
   useEffect(() => {
     cargarDatos()
     const unsub = createWS(`mesero_${user.id}`, msg => {
+      console.log("¡Llegó un mensaje de la cocina!", msg);
       if (msg.tipo === 'mesa_actualizada') {
         setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
       if (msg.tipo === 'orden_creada') {
         setOrdenes(prev => [...prev.filter(o => o.id !== msg.orden.id), msg.orden])
       }
-      if (msg.tipo === 'orden_cerrada') {
+      if (msg.tipo === 'orden_closed' || msg.tipo === 'orden_cerrada') {
         setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
       if (msg.tipo === 'item_listo') {
-        toast(`✅ ${msg.producto} está listo`, 'success')
+        const identificadorMesa = msg.mesa 
+          ? (msg.mesa.toString().toLowerCase().includes('mesa') ? msg.mesa : `Mesa ${msg.mesa}`) 
+          : 'Mesa ?';
+
+        if (msg.estado_cocina === 'listo') {
+          toast(`¡Listo para entregar! ${identificadorMesa} — ${msg.producto} listo`, 'success')
+        } else if (msg.estado_cocina === 'preparando') {
+          toast(`En preparación: ${identificadorMesa} — ${msg.producto}`, 'info')
+        }
+        
         setOrdenes(prev => prev.map(o => {
           if (o.id !== msg.orden_id) return o
           return { ...o, items: o.items.map(i => i.id === msg.item_id ? { ...i, estado_cocina: msg.estado_cocina } : i) }
@@ -77,7 +89,7 @@ export default function Mesero() {
 
   // ── Carrito helpers ──
   const agregarAlCarrito = (producto, modificador = null) => {
-    const key = `${producto.id}_${modificador?.id ?? 'base'}`
+    const key = `${producto.id}_${modificador?.id ?? 'base'}_c${comensalActivo}`
     setCarrito(prev => {
       const exists = prev.find(c => c.key === key)
       if (exists) return prev.map(c => c.key === key ? { ...c, cantidad: c.cantidad + 1 } : c)
@@ -86,7 +98,7 @@ export default function Mesero() {
         precio += modificador.precio_extra || 0
         if (modificador.descuento_pct > 0) precio = precio * (1 - modificador.descuento_pct / 100)
       }
-      return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '' }]
+      return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '', comensal: comensalActivo }]
     })
   }
 
@@ -95,7 +107,6 @@ export default function Mesero() {
     if (mods.length > 0) {
       setProdPendiente(prod)
     } else {
-      // Verificar si hay extra queso global disponible
       agregarAlCarrito(prod)
     }
   }
@@ -115,35 +126,43 @@ export default function Mesero() {
       const items = carrito.map(c => ({
         producto_id: c.producto.id,
         modificador_id: c.modificador?.id ?? null,
+        shadow_id: null,
         cantidad: c.cantidad,
         comentario: c.comentario || null,
+        comensal: c.comensal,
       }))
       await api.post('/ordenes/', { mesa_id: mesaSeleccionada.id, mesero_id: user.id, items })
-      toast('Comanda enviada a cocina ✅', 'success')
+      toast('Comanda enviada a cocina', 'success')
       setCarrito([])
       setModalOrden(false)
       setMesaSeleccionada(null)
+      setComensalActivo(1)
       cargarDatos()
     } catch (e) {
       toast(e.message, 'error')
     }
   }
 
-  // ── Cobrar ──
+  // —— Buscar orden activa de la mesa ——
   const ordenDeMesa = (mesa) => {
-    const ordenesAbiertas = ordenes.filter(o => o.mesa_id === mesa.id && o.estado === 'abierta') 
+    // Buscamos cualquier orden que esté explícitamente abierta/abiega en esta mesa
+    const ordenesAbiertas = ordenes.filter(o => o.mesa_id === mesa.id && (o.estado === 'abiega' || o.estado === 'abierta')) 
     if (ordenesAbiertas.length === 0) return null
+    
     const granTotal = ordenesAbiertas.reduce((suma, o) => suma + o.total, 0)
     const todosLosItems = ordenesAbiertas.flatMap(o => o.items)
+    
     return {
-      id: ordenesAbiertas[0].id, // ID de referencia para el backend (la primera orden)
+      id: ordenesAbiertas[0].id, 
       mesa_id: mesa.id,
       mesa_nombre: mesa.nombre,
-      total: granTotal,          // <--- La suma de todas las órdenes juntas
-      items: todosLosItems,      // <--- Todos los platillos combinados
-      ordenes_ids: ordenesAbiertas.map(o => o.id) // Lista de todos los IDs afectados
+      mesero_id: ordenesAbiertas[0].mesero_id, 
+      total: granTotal,          
+      items: todosLosItems,      
+      ordenes_ids: ordenesAbiertas.map(o => o.id) 
     }
-}
+  }
+
   const abrirPago = (orden) => {
     setModalPago(orden)
     setPagos([{ metodo: 'efectivo', monto: String(orden.total.toFixed(2)) }])
@@ -158,23 +177,22 @@ export default function Mesero() {
       await api.post(`/ordenes/${modalPago.id}/cerrar`, {
         pagos: pagosValidos.map(p => ({ metodo: p.metodo, monto: parseFloat(p.monto) })),
         num_divisiones: numDivisiones > 1 ? numDivisiones : null,
+        mesero_id: user.id 
       })
-      toast('Cuenta cerrada ✅', 'success')
+      toast('Cuenta cerrada con éxito', 'success')
       setModalPago(null)
       cargarDatos()
     } catch (e) {
-      toast(e.message, 'error')
+      toast(e.response?.data?.detail || e.message, 'error')
     }
   }
 
-  // ── Filtros productos ──
   const prodsFiltrados = productos.filter(p => {
     if (filtroEstacion !== 'todos' && p.estacion !== filtroEstacion) return false
     if (busqueda && !p.nombre.toLowerCase().includes(busqueda.toLowerCase())) return false
     return true
   })
 
-  // ── Render ──
   const tabs = [
     { id: 'mesas', label: 'Mesas', icon: '🪑' },
     { id: 'ordenes', label: 'Mis Órdenes', icon: '📋' },
@@ -198,14 +216,24 @@ export default function Mesero() {
             <div className="mesa-grid">
               {mesas.map(mesa => {
                 const orden = ordenDeMesa(mesa)
+                
+                // CORRECCIÓN AQUÍ: Solo bloqueamos si EXISTE una orden Y el ID del mesero no coincide con el logueado
+                const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
+
                 return (
                   <div
                     key={mesa.id}
                     className={`mesa-card ${mesa.estado}`}
                     onClick={() => {
+                      // Si la mesa es de otro mesero, ni siquiera dejamos que alteren la comanda
+                      if (esDeOtroMesero) {
+                        toast('Esta mesa está siendo atendida por otro mesero', 'info');
+                        return;
+                      }
                       setMesaSeleccionada(mesa)
-                        setCarrito([])
-                        setModalOrden(true)
+                      setCarrito([])
+                      setComensalActivo(1) 
+                      setModalOrden(true)
                     }}
                   >
                     <span style={{ fontSize: 28 }}>🪑</span>
@@ -221,9 +249,14 @@ export default function Mesero() {
                         </span>
                         <button
                           className="btn btn-primary btn-sm"
-                          onClick={e => { e.stopPropagation(); abrirPago(orden) }}
+                          disabled={esDeOtroMesero}
+                          style={esDeOtroMesero ? { opacity: 0.4, cursor: 'not-allowed', backgroundColor: '#666' } : {}}
+                          onClick={e => { 
+                            e.stopPropagation(); // Evitamos que abra el modal de comandas
+                            if (!esDeOtroMesero) abrirPago(orden);
+                          }}
                         >
-                          Cobrar
+                          {esDeOtroMesero ? 'Bloqueado' : 'Cobrar'}
                         </button>
                       </>
                     )}
@@ -238,9 +271,9 @@ export default function Mesero() {
         {tab === 'ordenes' && (
           <>
             <h2 style={{ marginBottom: 16 }}>Mis Órdenes Activas</h2>
-            {ordenes.filter(o => o.mesero_id === user.id).length === 0
+            {ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).length === 0
               ? <p style={{ color: 'var(--text2)' }}>No tienes órdenes activas.</p>
-              : ordenes.filter(o => o.mesero_id === user.id).map(orden => (
+              : ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).map(orden => (
                 <div key={orden.id} className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <div>
@@ -254,17 +287,38 @@ export default function Mesero() {
                       <button className="btn btn-primary btn-sm" onClick={() => abrirPago(orden)}>Cobrar</button>
                     </div>
                   </div>
-                  {orden.items.map(item => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ color: 'var(--accent)', fontWeight: 700, minWidth: 24 }}>{item.cantidad}x</span>
-                      <span style={{ flex: 1 }}>{item.producto_nombre}</span>
-                      {item.modificador_nombre && <span style={{ color: 'var(--purple)', fontSize: 12 }}>{item.modificador_nombre}</span>}
-                      <span className={`badge ${item.estado_cocina === 'listo' ? 'badge-green' : item.estado_cocina === 'preparando' ? 'badge-amber' : 'badge-gray'}`}>
-                        {item.estado_cocina}
-                      </span>
-                      <span style={{ color: 'var(--text2)', fontSize: 12 }}>${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
-                    </div>
-                  ))}
+                  
+                  {/* Mapeo de items */}
+                  {[...orden.items]
+                    .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
+                    .map(item => (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ color: 'var(--accent)', fontWeight: 700, minWidth: 24 }}>{item.cantidad}x</span>
+                        
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span>{item.producto_nombre}</span>
+                          <span style={{ 
+                            fontSize: 10, 
+                            fontWeight: 600,
+                            color: 'var(--blue)', 
+                            background: 'rgba(59, 130, 246, 0.15)', 
+                            padding: '2px 6px', 
+                            borderRadius: 4,
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            👤 C{item.comensal || 1}
+                          </span>
+                        </div>
+
+                        {item.modificador_nombre && <span style={{ color: 'var(--purple)', fontSize: 12 }}>{item.modificador_nombre}</span>}
+                        
+                        <span className={`badge ${item.estado_cocina === 'listo' ? 'badge-green' : item.estado_cocina === 'preparando' ? 'badge-amber' : 'badge-gray'}`}>
+                          {item.estado_cocina}
+                        </span>
+                        <span style={{ color: 'var(--text2)', fontSize: 12 }}>${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
+                      </div>
+                    ))}
                 </div>
               ))
             }
@@ -284,7 +338,6 @@ export default function Mesero() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, height: '65vh' }}>
               {/* Menú */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
-                {/* Filtros */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <span className={`chip${filtroEstacion === 'todos' ? ' active' : ''}`} onClick={() => setFiltroEstacion('todos')}>Todos</span>
                   {ESTACIONES.map(e => (
@@ -315,33 +368,68 @@ export default function Mesero() {
 
               {/* Carrito */}
               <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg3)', borderRadius: 10, padding: 14, overflow: 'hidden' }}>
-                <strong style={{ marginBottom: 10 }}>🛒 Carrito ({carrito.length})</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: 16 }}>🛒 Carrito ({carrito.length})</strong>
+                  </div>
+                  <div className="select-comensal-container">
+                    <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      Asignar productos a:
+                    </span>
+                    <select 
+                      value={comensalActivo} 
+                      onChange={e => setComensalActivo(Number(e.target.value))}
+                      className="select-comensal"
+                    >
+                      {Array.from({length: mesaSeleccionada?.capacidad || 4}, (_, index) => {
+                        const numeroComensal = index + 1;
+                        return (
+                          <option key={numeroComensal} value={numeroComensal}>
+                            Comensal {numeroComensal}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {carrito.length === 0
                     ? <p style={{ color: 'var(--text3)', fontSize: 13 }}>Agrega productos del menú</p>
-                    : carrito.map(c => (
-                      <div key={c.key} className="carrito-item">
-                        <div className="ci-info">
-                          <div className="ci-nombre">{c.producto.nombre}</div>
-                          {c.modificador && <div className="ci-mod">{c.modificador.nombre}</div>}
-                          <input
-                            placeholder="Comentario..."
-                            value={c.comentario}
-                            onChange={e => setCarrito(prev => prev.map(x => x.key === c.key ? { ...x, comentario: e.target.value } : x))}
-                            style={{ marginTop: 4, fontSize: 11, padding: '3px 6px' }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                          <span className="ci-precio">${(c.precio * c.cantidad).toFixed(2)}</span>
-                          <div className="qty-ctrl">
-                            <button className="qty-btn" onClick={() => cambiarCantidad(c.key, -1)}>−</button>
-                            <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13 }}>{c.cantidad}</span>
-                            <button className="qty-btn" onClick={() => cambiarCantidad(c.key, 1)}>+</button>
+                    : [...carrito]
+                        .sort((a, b) => a.comensal - b.comensal)
+                        .map(c => (
+                          <div key={c.key} className="carrito-item" style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 8, flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span className="badge badge-blue" style={{ fontSize: 10, padding: '2px 6px', fontWeight: 600 }}>
+                                👤 Comensal {c.comensal}
+                              </span>
+                              <span className="ci-precio">${(c.precio * c.cantidad).toFixed(2)}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div className="ci-info" style={{ flex: 1, marginRight: 8 }}>
+                                <div className="ci-nombre">{c.producto.nombre}</div>
+                                {c.modificador && <div className="ci-mod">{c.modificador.nombre}</div>}
+                                <input
+                                  placeholder="Comentario..."
+                                  value={c.comentario}
+                                  onChange={e => setCarrito(prev => prev.map(x => x.key === c.key ? { ...x, comentario: e.target.value } : x))}
+                                  style={{ marginTop: 4, fontSize: 11, padding: '3px 6px', width: '100%' }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                                <div className="qty-ctrl">
+                                  <button className="qty-btn" onClick={() => cambiarCantidad(c.key, -1)}>−</button>
+                                  <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13 }}>{c.cantidad}</span>
+                                  <button className="qty-btn" onClick={() => cambiarCantidad(c.key, 1)}>+</button>
+                                </div>
+                                <button onClick={() => quitarItem(c.key)} style={{ background: 'none', color: 'var(--red)', fontSize: 11, cursor: 'pointer', border: 'none', padding: 0 }}>✕ quitar</button>
+                              </div>
+                            </div>
                           </div>
-                          <button onClick={() => quitarItem(c.key)} style={{ background: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>✕ quitar</button>
-                        </div>
-                      </div>
-                    ))
+                        ))
                   }
                 </div>
                 <div className="sep" />
@@ -378,7 +466,6 @@ export default function Mesero() {
               )
             })}
           </div>
-          {/* Extra queso global */}
           <div className="sep" />
           <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 8 }}>Extras globales:</p>
           {productos.length > 0 && (() => {
@@ -401,7 +488,6 @@ export default function Mesero() {
             <button className="btn btn-green" onClick={cobrar}>Confirmar cobro</button>
           </>}
         >
-          {/* Resumen items */}
           <div style={{ maxHeight: 180, overflowY: 'auto', marginBottom: 14 }}>
             {modalPago.items.map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
@@ -416,15 +502,34 @@ export default function Mesero() {
           </div>
 
           {/* División de cuenta */}
-          <div style={{ marginBottom: 14 }}>
+          <div className='seccion-division'>
             <label>Dividir cuenta entre</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-              <input type="number" min="1" max="20" value={numDivisiones}
+            <div className='division-control'>
+              <button 
+                type="button"
+                className="btn-division" 
+                onClick={() => setNumDivisiones(prev => Math.max(1, prev - 1))}
+              >
+                −
+              </button>
+              <input 
+                type="number" 
+                min="1" 
+                max="20" 
+                value={numDivisiones}
                 onChange={e => setNumDivisiones(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width: 80 }} />
-              <span style={{ color: 'var(--text2)', fontSize: 13 }}>persona(s)</span>
+                className='input-divisiones'
+              />
+              <button 
+                type="button"
+                className="btn-division" 
+                onClick={() => setNumDivisiones(prev => Math.min(20, prev + 1))}
+              >
+                +
+              </button>
+              <span style={{ color: 'var(--text2)', fontSize: 13, marginLeft: 4 }}>persona(s)</span>
               {numDivisiones > 1 && (
-                <span className="badge badge-blue">${(modalPago.total / numDivisiones).toFixed(2)} c/u</span>
+                <span className="badge-total-persona">${(modalPago.total / numDivisiones).toFixed(2)} c/u</span>
               )}
             </div>
           </div>
