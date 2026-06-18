@@ -263,7 +263,11 @@ async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = De
     orden = db.query(Orden).filter(Orden.id == orden_id).first()
     if not orden or orden.estado != "abierta":
         raise HTTPException(status_code=400, detail="Orden no válida")
-    
+    if orden.mesero_id != data.mesero_id:
+        raise HTTPException(
+            status_code=403, 
+            detail="Disculpe, solo el mesero que levantó esta orden tiene autorización para cobrarla."
+        )
     mesa_objeto = orden.mesa 
     ordenes_abiertas = db.query(Orden).options(
             joinedload(Orden.items).joinedload(OrdenItem.producto)

@@ -138,6 +138,7 @@ class PagoCreate(BaseModel):
 class CerrarOrdenRequest(BaseModel):
     pagos: List[PagoCreate]
     num_divisiones: Optional[int] = None
+    mesero_id: int  # <-- Agregar esta línea
 
 
 # Reportes
