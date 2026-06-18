@@ -27,6 +27,7 @@ def build_orden_out(orden: Orden) -> dict:
             "comentario": item.comentario,
             "estado_cocina": item.estado_cocina,
             "estacion": item.producto.estacion if item.producto else "",
+            "comensal": item.comensal,
         })
     return {
         "id": orden.id,
@@ -101,6 +102,7 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             cantidad=item_data.cantidad,
             precio_unitario=precio,
             comentario=item_data.comentario,
+            comensal=item_data.comensal,
         )
         db.add(item)
         db.flush()
@@ -124,8 +126,8 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
                 "stock_minimo": producto.stock_minimo
             })
 
-        # Agrupar por estación para envío a cocina
-        estacion = producto.estacion
+        # Agrupar por estación real del producto para envío a cocina
+        estacion = producto.estacion if producto.estacion else "gorditas" # Fallback por si acaso
         if estacion not in items_por_estacion:
             items_por_estacion[estacion] = []
         items_por_estacion[estacion].append({
@@ -134,6 +136,7 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             "cantidad": item_data.cantidad,
             "modificador": None,
             "comentario": item_data.comentario,
+            "comensal": item.comensal,
         })
 
     # Actualizar estado de mesa
@@ -199,6 +202,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
             cantidad=item_data.get("cantidad", 1),
             precio_unitario=precio,
             comentario=item_data.get("comentario"),
+            comensal=item_data.get("comensal", 1),
         )
         db.add(item)
         db.flush()
@@ -206,7 +210,8 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
         producto.stock -= item.cantidad
         db.add(InventarioMovimiento(producto_id=producto.id, cantidad_delta=-item.cantidad, motivo="venta"))
 
-        estacion = producto.estacion
+        # Recuperar de manera dinámica la estación del producto agregado
+        estacion = producto.estacion if producto.estacion else "gorditas"
         if estacion not in items_por_estacion:
             items_por_estacion[estacion] = []
         items_por_estacion[estacion].append({
@@ -214,6 +219,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
             "producto": producto.nombre,
             "cantidad": item.cantidad,
             "comentario": item.comentario,
+            "comensal": item.comensal,
         })
 
     db.commit()
@@ -231,11 +237,16 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
 
 @router.patch("/{orden_id}/item/{item_id}/estado")
 async def actualizar_estado_item(orden_id: int, item_id: int, body: dict, db: Session = Depends(get_db)):
+    # Añadimos joinedload para traer la orden y la mesa de forma eficiente
     item = db.query(OrdenItem).filter(OrdenItem.id == item_id, OrdenItem.orden_id == orden_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
+        
     item.estado_cocina = body.get("estado_cocina", item.estado_cocina)
     db.commit()
+
+    # Recuperamos el nombre de la mesa de forma segura a través de las relaciones de SQLAlchemy
+    mesa_nombre = item.orden.mesa.nombre if item.orden and item.orden.mesa else "?"
 
     await manager.notify_meseros({
         "tipo": "item_listo",
@@ -243,20 +254,29 @@ async def actualizar_estado_item(orden_id: int, item_id: int, body: dict, db: Se
         "item_id": item_id,
         "estado_cocina": item.estado_cocina,
         "producto": item.producto.nombre if item.producto else "",
+        "mesa": mesa_nombre,  # <--- ✨ AHORA SÍ LO MANDAMOS
     })
-    return {"ok": True}
 
 
 @router.post("/{orden_id}/cerrar")
 async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = Depends(get_db)):
-    orden = db.query(Orden).options(
-        joinedload(Orden.mesa),
-        joinedload(Orden.items).joinedload(OrdenItem.producto),
-    ).filter(Orden.id == orden_id).first()
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
     if not orden or orden.estado != "abierta":
         raise HTTPException(status_code=400, detail="Orden no válida")
-
-    total = sum(i.precio_unitario * i.cantidad for i in orden.items)
+    if orden.mesero_id != data.mesero_id:
+        raise HTTPException(
+            status_code=403, 
+            detail="Disculpe, solo el mesero que levantó esta orden tiene autorización para cobrarla."
+        )
+    mesa_objeto = orden.mesa 
+    ordenes_abiertas = db.query(Orden).options(
+            joinedload(Orden.items).joinedload(OrdenItem.producto)
+        ).filter(
+            Orden.mesa_id == mesa_objeto.id,
+            Orden.estado == "abierta"
+        ).all()
+    
+    total = sum(i.precio_unitario * i.cantidad for orden in ordenes_abiertas for i in orden.items)
 
     # Registrar pagos
     for pago_data in data.pagos:
@@ -273,24 +293,26 @@ async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = De
         db.add(division)
 
     # Cerrar orden y liberar mesa
-    orden.estado = "pagada"
-    orden.cerrado_en = datetime.utcnow()
-    mesa = orden.mesa
-    # Verificar si mesa tiene otras órdenes abiertas
-    otras_ordenes = db.query(Orden).filter(
-        Orden.mesa_id == mesa.id, Orden.estado == "abierta", Orden.id != orden_id
-    ).count()
-    if otras_ordenes == 0:
-        mesa.estado = "disponible"
-
+    ahora = datetime.utcnow()
+    for o in ordenes_abiertas:
+        o.estado = "pagada"
+        o.cerrado_en = ahora
+    mesa_objeto.estado = "disponible"
     db.commit()
-
+    ids_cerrados = [o.id for o in ordenes_abiertas]
     await manager.notify_meseros({
         "tipo": "orden_cerrada",
         "orden_id": orden_id,
-        "mesa": {"id": mesa.id, "nombre": mesa.nombre, "estado": mesa.estado, "capacidad": mesa.capacidad}
+        "ordenes_afectadas": ids_cerrados,
+        "mesa": {
+            "id": mesa_objeto.id, 
+            "nombre": mesa_objeto.nombre, 
+            "estado": mesa_objeto.estado, 
+            "capacidad": mesa_objeto.capacidad
+        }
     })
-    return {"ok": True, "total": total}
+    
+    return {"ok": True, "total": total, "ordenes_cerradas": len(ids_cerrados)}
 
 
 @router.get("/cocina/{estacion}")
@@ -300,7 +322,8 @@ def ordenes_cocina(estacion: str, db: Session = Depends(get_db)):
         joinedload(OrdenItem.modificador),
         joinedload(OrdenItem.orden).joinedload(Orden.mesa),
     ).filter(
-        Producto.estacion == estacion,
+        # Filtramos dinámicamente por la estación solicitada en la URL de cocina
+        Producto.estacion == estacion, 
         Orden.estado == "abierta",
         OrdenItem.estado_cocina != "listo"
     ).all()
@@ -316,5 +339,6 @@ def ordenes_cocina(estacion: str, db: Session = Depends(get_db)):
             "cantidad": item.cantidad,
             "comentario": item.comentario,
             "estado_cocina": item.estado_cocina,
+            "comensal": item.comensal,
         })
     return result

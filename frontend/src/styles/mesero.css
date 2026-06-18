@@ -1,0 +1,251 @@
+/* ═══════════════════════════════════════════════════════════════════ */
+/* 🎨 ESTILOS ORIGINALES DE LA INTERFAZ - RESPALDADO PARA EL STAFF      */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+.page {
+  /* Al encapsular el :root dentro de .page, sus variables solo viven aquí */
+  --primary: #1e40af;           /* Azul profesional */
+  --primary-light: #3b82f6;     /* Azul claro */
+  --primary-dark: #1e3a8a;      /* Azul oscuro */
+  --accent: #f59e0b;            /* Ámbar/Naranja */
+  --accent-dark: #d97706;       /* Ámbar oscuro */
+  
+  --success: #10b981;           /* Verde */
+  --warning: #f59e0b;           /* Ámbar */
+  --error: #ef4444;             /* Rojo */
+  --info: #06b6d4;              /* Cyan */
+  
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+  --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151;
+  --gray-800: #1f2937; --gray-900: #111827;
+  
+  --text-primary: #111827; --text-secondary: #6b7280; --text-tertiary: #9ca3af;
+  --bg-primary: #ffffff; --bg-secondary: #f9fafb; --bg-tertiary: #f3f4f6;
+  --border: #e5e7eb; --border-light: #f3f4f6;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Modo oscuro opcional solo para las vistas del staff */
+@media (prefers-color-scheme: dark) {
+  .page {
+    --text-primary: #f9fafb; --text-secondary: #d1d5db; --text-tertiary: #9ca3af;
+    --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
+    --border: #334155; --border-light: #475569;
+  }
+}
+
+/* 📝 TIPOGRAFÍA INTERNA */
+.page h1, .page h2, .page h3, .page h4 { font-weight: 600; line-height: 1.3; color: var(--text-primary); margin: 0 0 0.5rem 0; }
+.page h1 { font-size: 2.5rem; } .page h2 { font-size: 2rem; } .page h3 { font-size: 1.5rem; }
+.page p { margin: 0; color: var(--text-primary); }
+.page small { font-size: 0.875rem; color: var(--text-secondary); }
+
+/* 🔘 BOTONES */
+.page button { font-family: inherit; cursor: pointer; border: none; transition: all var(--transition-base); }
+.page .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1rem; border-radius: var(--radius-md); font-size: 0.925rem; font-weight: 500; border: 1px solid transparent; }
+.page .btn-primary { background-color: var(--primary); color: white; }
+.page .btn-primary:hover:not(:disabled) { background-color: var(--primary-dark); }
+.page .btn-ghost { background-color: transparent; color: var(--text-secondary); }
+.page .btn-ghost:hover:not(:disabled) { background-color: var(--bg-tertiary); color: var(--text-primary); }
+.page .btn-success { background-color: var(--success); color: white; }
+.page .btn-success:hover:not(:disabled) { background-color: #059669; }
+.page .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.8125rem; }
+
+/* 📋 FORMULARIOS E INPUTS DENTRO DE LAS PÁGINAS */
+.page input, .page select { font-family: inherit; padding: 0.625rem 0.875rem; border: 1px solid var(--border); border-radius: var(--radius-md); background-color: var(--bg-primary); color: var(--text-primary); }
+.page input:focus, .page select:focus { outline: none; border-color: var(--primary); }
+
+/* 🏷️ BADGES */
+.page .badge { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+.page .badge-green, .page .badge-success { background-color: rgba(16, 185, 129, 0.1); color: #047857; }
+.page .badge-red, .page .badge-error { background-color: rgba(239, 68, 68, 0.1); color: #7f1d1d; }
+.page .badge-amber, .page .badge-warning { background-color: rgba(245, 158, 11, 0.1); color: #92400e; }
+.page .badge-gray { background-color: rgba(107, 114, 128, 0.1); color: var(--text-secondary); }
+
+/* LAYOUT ESTRUCTURAL COPIADO */
+.page .content { flex: 1; overflow-y: auto; padding: 2rem; background-color: var(--bg-secondary); }
+.page .card { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+
+/* SCROLLBAR */
+.page ::-webkit-scrollbar { width: 8px; }
+.page ::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+.page ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* LAYOUT ESPECÍFICO DEL MAPA DE MESAS (FALTA EN SU CSS ORIGINAL)     */
+/* ═══════════════════════════════════════════════════════════════════ */
+.page .mesa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+.page .mesa-card { background-color: var(--bg-primary); border: 2px solid var(--border); border-radius: var(--radius-xl); padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 200ms ease; }
+.page .mesa-card:hover { transform: translateY(-4px); }
+.page .mesa-card.disponible { border-color: var(--success); }
+.page .mesa-card.ocupada { border-color: var(--error); }
+.page .mesa-nombre { font-weight: 700; font-size: 1.1rem; }
+.page .mesa-estado { font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
+
+/* Modales y Carrito de Compras de Mesero */
+.page .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.page .modal { background-color: var(--bg-primary); border-radius: var(--radius-xl); padding: 1.75rem; }
+.page .chip { padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid var(--border); font-size: 0.875rem; cursor: pointer; background-color: var(--bg-secondary); color: var(--text-secondary); }
+.page .chip.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+.page .prod-card { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem; }
+.page .prod-nombre { font-weight: 600; }
+.page .prod-precio { color: var(--primary-light); font-weight: 700; }
+.page .carrito-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border); gap: 0.5rem; }
+.page .ci-nombre { font-weight: 500; }
+.page .ci-mod { color: #7c3aed; font-size: 0.8rem; font-weight: 600; }
+.page .qty-ctrl { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border-radius: 6px; padding: 2px; }
+.page .qty-btn { background: var(--bg-tertiary); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.page .sep { height: 1px; background-color: var(--border); margin: 1rem 0; }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* LAYOUT ESPECÍFICO DE COCINA                                         */
+/* ═══════════════════════════════════════════════════════════════════ */
+.page .topbar { display: flex; align-items: center; padding: 1rem 2rem; background-color: var(--bg-primary); border-bottom: 1px solid var(--border); }
+.page .topbar-brand { font-size: 1.3rem; font-weight: 700; }
+.page .comanda-card { background-color: var(--bg-primary); border: 2px solid var(--border); border-radius: var(--radius-xl); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+.page .comanda-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 2px dashed var(--border); }
+.page .mesa-tag { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+.page .comanda-item { display: flex; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border-light); }
+.page .comanda-item .qty { font-size: 1.25rem; font-weight: 700; color: var(--accent-dark); min-width: 24px; }
+.page .comanda-item .info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.page .comanda-item .nombre { font-weight: 600; }
+.page .comanda-item .mod { color: #7c3aed; font-size: 0.8rem; font-weight: 600; }
+.page .comanda-item .comment { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; background-color: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* División de cuenta                                      */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor de la sección de división */
+.seccion-division {
+  background: var(--bg3);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.seccion-division label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text1);
+  margin-bottom: 8px;
+}
+
+/* Control del input de divisiones */
+.division-control {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.input-divisiones {
+  width: 60px; /* Lo encogemos un poquito para dar espacio a los botones */
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  color: var(--text1);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.input-divisiones::-webkit-outer-spin-button,
+.input-divisiones::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Eliminar flechas en Firefox */
+.input-divisiones[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Badge elegante para el total por persona */
+.badge-total-persona {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--blue);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.btn-division {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text1);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-division:hover {
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* Selector de comensales                                     */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor del selector para darle un orden alineado */
+.select-comensal-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.select-comensal {
+  flex: 1; /* Esto hace que el select ocupe el resto del ancho disponible de forma limpia */
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  color: var(--text1);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Efecto sutil al hacer foco */
+.select-comensal:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Estilo para las opciones de adentro en sistemas que lo soporten */
+.select-comensal option {
+  background: var(--bg1);
+  color: var(--text1);
+  padding: 6px;
+}

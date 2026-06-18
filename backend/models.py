@@ -86,7 +86,7 @@ class OrdenItem(Base):
     orden = relationship("Orden", back_populates="items")
     producto = relationship("Producto")
     modificador = relationship("Modificador")
-
+    comensal = Column(Integer, default=1, nullable=False)
 
 class Pago(Base):
     __tablename__ = "pagos"

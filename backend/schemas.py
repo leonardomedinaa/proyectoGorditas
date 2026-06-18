@@ -88,6 +88,7 @@ class OrdenItemCreate(BaseModel):
     modificador_id: Optional[int] = None
     cantidad: int = 1
     comentario: Optional[str] = None
+    comensal: int = 1  # Por defecto si no se manda, será el comensal 1
 
 
 class OrdenItemOut(BaseModel):
@@ -137,6 +138,7 @@ class PagoCreate(BaseModel):
 class CerrarOrdenRequest(BaseModel):
     pagos: List[PagoCreate]
     num_divisiones: Optional[int] = None
+    mesero_id: int  # <-- Agregar esta línea
 
 
 # Reportes
