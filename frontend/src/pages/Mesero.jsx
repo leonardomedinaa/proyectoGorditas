@@ -22,7 +22,7 @@ export default function Mesero() {
   // Modal states
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [modalOrden, setModalOrden] = useState(false)
-  const [modalPago, setModalPago] = useState(null)   // orden a cobrar
+  const [modalPago, setModalPago] = useState(null)   
   const [modalDivision, setModalDivision] = useState(null)
 
   // Carrito
@@ -63,7 +63,7 @@ export default function Mesero() {
       if (msg.tipo === 'orden_creada') {
         setOrdenes(prev => [...prev.filter(o => o.id !== msg.orden.id), msg.orden])
       }
-      if (msg.tipo === 'orden_cerrada') {
+      if (msg.tipo === 'orden_closed' || msg.tipo === 'orden_cerrada') {
         setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
@@ -98,7 +98,7 @@ export default function Mesero() {
         precio += modificador.precio_extra || 0
         if (modificador.descuento_pct > 0) precio = precio * (1 - modificador.descuento_pct / 100)
       }
-  return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '', comensal: comensalActivo }]
+      return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '', comensal: comensalActivo }]
     })
   }
 
@@ -107,7 +107,6 @@ export default function Mesero() {
     if (mods.length > 0) {
       setProdPendiente(prod)
     } else {
-      // Verificar si hay extra queso global disponible
       agregarAlCarrito(prod)
     }
   }
@@ -127,6 +126,7 @@ export default function Mesero() {
       const items = carrito.map(c => ({
         producto_id: c.producto.id,
         modificador_id: c.modificador?.id ?? null,
+        shadow_id: null,
         cantidad: c.cantidad,
         comentario: c.comentario || null,
         comensal: c.comensal,
@@ -143,21 +143,26 @@ export default function Mesero() {
     }
   }
 
-  // ── Cobrar ──
+  // —— Buscar orden activa de la mesa ——
   const ordenDeMesa = (mesa) => {
-    const ordenesAbiertas = ordenes.filter(o => o.mesa_id === mesa.id && o.estado === 'abierta') 
+    // Buscamos cualquier orden que esté explícitamente abierta/abiega en esta mesa
+    const ordenesAbiertas = ordenes.filter(o => o.mesa_id === mesa.id && (o.estado === 'abiega' || o.estado === 'abierta')) 
     if (ordenesAbiertas.length === 0) return null
+    
     const granTotal = ordenesAbiertas.reduce((suma, o) => suma + o.total, 0)
     const todosLosItems = ordenesAbiertas.flatMap(o => o.items)
+    
     return {
-      id: ordenesAbiertas[0].id, // ID de referencia para el backend (la primera orden)
+      id: ordenesAbiertas[0].id, 
       mesa_id: mesa.id,
       mesa_nombre: mesa.nombre,
-      total: granTotal,          // <--- La suma de todas las órdenes juntas
-      items: todosLosItems,      // <--- Todos los platillos combinados
-      ordenes_ids: ordenesAbiertas.map(o => o.id) // Lista de todos los IDs afectados
+      mesero_id: ordenesAbiertas[0].mesero_id, 
+      total: granTotal,          
+      items: todosLosItems,      
+      ordenes_ids: ordenesAbiertas.map(o => o.id) 
     }
-}
+  }
+
   const abrirPago = (orden) => {
     setModalPago(orden)
     setPagos([{ metodo: 'efectivo', monto: String(orden.total.toFixed(2)) }])
@@ -172,23 +177,22 @@ export default function Mesero() {
       await api.post(`/ordenes/${modalPago.id}/cerrar`, {
         pagos: pagosValidos.map(p => ({ metodo: p.metodo, monto: parseFloat(p.monto) })),
         num_divisiones: numDivisiones > 1 ? numDivisiones : null,
+        mesero_id: user.id 
       })
-      toast('Cuenta cerrada', 'success')
+      toast('Cuenta cerrada con éxito', 'success')
       setModalPago(null)
       cargarDatos()
     } catch (e) {
-      toast(e.message, 'error')
+      toast(e.response?.data?.detail || e.message, 'error')
     }
   }
 
-  // ── Filtros productos ──
   const prodsFiltrados = productos.filter(p => {
     if (filtroEstacion !== 'todos' && p.estacion !== filtroEstacion) return false
     if (busqueda && !p.nombre.toLowerCase().includes(busqueda.toLowerCase())) return false
     return true
   })
 
-  // ── Render ──
   const tabs = [
     { id: 'mesas', label: 'Mesas', icon: '🪑' },
     { id: 'ordenes', label: 'Mis Órdenes', icon: '📋' },
@@ -212,15 +216,24 @@ export default function Mesero() {
             <div className="mesa-grid">
               {mesas.map(mesa => {
                 const orden = ordenDeMesa(mesa)
+                
+                // CORRECCIÓN AQUÍ: Solo bloqueamos si EXISTE una orden Y el ID del mesero no coincide con el logueado
+                const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
+
                 return (
                   <div
                     key={mesa.id}
                     className={`mesa-card ${mesa.estado}`}
                     onClick={() => {
+                      // Si la mesa es de otro mesero, ni siquiera dejamos que alteren la comanda
+                      if (esDeOtroMesero) {
+                        toast('Esta mesa está siendo atendida por otro mesero', 'info');
+                        return;
+                      }
                       setMesaSeleccionada(mesa)
-                        setCarrito([])
-                        setComensalActivo(1) // <--- AÑADE ESTA LÍNEA
-                        setModalOrden(true)
+                      setCarrito([])
+                      setComensalActivo(1) 
+                      setModalOrden(true)
                     }}
                   >
                     <span style={{ fontSize: 28 }}>🪑</span>
@@ -236,9 +249,14 @@ export default function Mesero() {
                         </span>
                         <button
                           className="btn btn-primary btn-sm"
-                          onClick={e => { e.stopPropagation(); abrirPago(orden) }}
+                          disabled={esDeOtroMesero}
+                          style={esDeOtroMesero ? { opacity: 0.4, cursor: 'not-allowed', backgroundColor: '#666' } : {}}
+                          onClick={e => { 
+                            e.stopPropagation(); // Evitamos que abra el modal de comandas
+                            if (!esDeOtroMesero) abrirPago(orden);
+                          }}
                         >
-                          Cobrar
+                          {esDeOtroMesero ? 'Bloqueado' : 'Cobrar'}
                         </button>
                       </>
                     )}
@@ -253,9 +271,9 @@ export default function Mesero() {
         {tab === 'ordenes' && (
           <>
             <h2 style={{ marginBottom: 16 }}>Mis Órdenes Activas</h2>
-            {ordenes.filter(o => o.mesero_id === user.id).length === 0
+            {ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).length === 0
               ? <p style={{ color: 'var(--text2)' }}>No tienes órdenes activas.</p>
-              : ordenes.filter(o => o.mesero_id === user.id).map(orden => (
+              : ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).map(orden => (
                 <div key={orden.id} className="card" style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <div>
@@ -270,7 +288,7 @@ export default function Mesero() {
                     </div>
                   </div>
                   
-                  {/* Mapeo de items ordenados por comensal */}
+                  {/* Mapeo de items */}
                   {[...orden.items]
                     .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
                     .map(item => (
@@ -279,8 +297,6 @@ export default function Mesero() {
                         
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span>{item.producto_nombre}</span>
-                          
-                          {/* Badge del comensal asignado */}
                           <span style={{ 
                             fontSize: 10, 
                             fontWeight: 600,
@@ -322,7 +338,6 @@ export default function Mesero() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, height: '65vh' }}>
               {/* Menú */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
-                {/* Filtros */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <span className={`chip${filtroEstacion === 'todos' ? ' active' : ''}`} onClick={() => setFiltroEstacion('todos')}>Todos</span>
                   {ESTACIONES.map(e => (
@@ -351,16 +366,12 @@ export default function Mesero() {
                 </div>
               </div>
 
-              {/* Carrito Modificado con Control de Comensales */}
+              {/* Carrito */}
               <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg3)', borderRadius: 10, padding: 14, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
-  
-                  {/* Línea 1: Título del carrito */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong style={{ fontSize: 16 }}>🛒 Carrito ({carrito.length})</strong>
                   </div>
-
-                  {/* Línea 2: Selector de comensal bien distribuido */}
                   <div className="select-comensal-container">
                     <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                       Asignar productos a:
@@ -380,19 +391,15 @@ export default function Mesero() {
                       })}
                     </select>
                   </div>
-
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {carrito.length === 0
                     ? <p style={{ color: 'var(--text3)', fontSize: 13 }}>Agrega productos del menú</p>
                     : [...carrito]
-                        // Ordena numéricamente para agrupar los platos de cada comensal juntos en la vista
                         .sort((a, b) => a.comensal - b.comensal)
                         .map(c => (
                           <div key={c.key} className="carrito-item" style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 8, flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-                            
-                            {/* Encabezado del Item indicando el comensal */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span className="badge badge-blue" style={{ fontSize: 10, padding: '2px 6px', fontWeight: 600 }}>
                                 👤 Comensal {c.comensal}
@@ -459,7 +466,6 @@ export default function Mesero() {
               )
             })}
           </div>
-          {/* Extra queso global */}
           <div className="sep" />
           <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 8 }}>Extras globales:</p>
           {productos.length > 0 && (() => {
@@ -482,7 +488,6 @@ export default function Mesero() {
             <button className="btn btn-green" onClick={cobrar}>Confirmar cobro</button>
           </>}
         >
-          {/* Resumen items */}
           <div style={{ maxHeight: 180, overflowY: 'auto', marginBottom: 14 }}>
             {modalPago.items.map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
@@ -500,8 +505,6 @@ export default function Mesero() {
           <div className='seccion-division'>
             <label>Dividir cuenta entre</label>
             <div className='division-control'>
-              
-              {/* Botón de menos */}
               <button 
                 type="button"
                 className="btn-division" 
@@ -509,7 +512,6 @@ export default function Mesero() {
               >
                 −
               </button>
-
               <input 
                 type="number" 
                 min="1" 
@@ -518,8 +520,6 @@ export default function Mesero() {
                 onChange={e => setNumDivisiones(Math.max(1, parseInt(e.target.value) || 1))}
                 className='input-divisiones'
               />
-
-              {/* Botón de más */}
               <button 
                 type="button"
                 className="btn-division" 
@@ -527,9 +527,7 @@ export default function Mesero() {
               >
                 +
               </button>
-
               <span style={{ color: 'var(--text2)', fontSize: 13, marginLeft: 4 }}>persona(s)</span>
-              
               {numDivisiones > 1 && (
                 <span className="badge-total-persona">${(modalPago.total / numDivisiones).toFixed(2)} c/u</span>
               )}
