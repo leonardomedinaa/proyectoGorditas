@@ -4,7 +4,10 @@ import { api, createWS } from '../api'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
-import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
+  DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
+  ArrowUpRight, LayoutDashboard
+ } from 'lucide-react'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -141,47 +144,186 @@ export default function Admin() {
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
 
   return (
-    <div className="page">
+    <div className="page"
+      style={{
+        background: 'var(--bg-primary)',
+        minHeight: '100vh',
+      }}>
+      <div style={{
+        background: 'var(--bg-primary)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      }}>  
       <Topbar tab={tab} setTab={setTab} tabs={TABS} />
-      <div className="content">
+      </div>
+      <div className="content"
+      style={{
+        padding: '2rem 2rem',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        margin: '0 auto',
+      }}>
 
         {/* ══════════ DASHBOARD ══════════ */}
         {tab === 'dashboard' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-              <h2 style={{ margin: 0 }}>Dashboard</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {['dia','semana','mes'].map(p => (
-                  <button key={p} className={`btn btn-sm ${periodoReporte === p ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setPeriodoReporte(p)}>
-                    {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}
-                  </button>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginBottom: '2rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: '0.75rem' }}>
+                  <div style={{
+                    background: 'var(--primary)',
+                    color: '#ffffff',
+                    padding: '0.6 rem',
+                    borderRadius: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <LayoutDashboard size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)'
+                    }}>Panel de Control</h2>
+                    <p style={{ 
+                      margin: 0,
+                      frontSize: '0.9rem', 
+                      color: 'var(--text-secondary)', 
+                      fontSize: '0.9rem' }}>
+                      Monitoreo rápido de operaciones</p>
+                  </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex',
+                background: 'var(--bg-secondary)',
+                padding: '0.5rem',
+                borderRadius: '2rem',
+                border: '1px solid var(--border)'
+                }}>
+                  {['dia','semana','mes'].map(p => (
+                    <button 
+                      key={p}
+                      style={{
+                        background: periodoReporte === p ? 'var(--primary)' : 'transparent',
+                        color: periodoReporte === p ? '#fff' : 'var(--text-primary)',
+                        border: 'none',
+                        padding: '0.5rem 1.2rem',
+                        borderRadius: '2rem',
+                        frontSize: '0.9rem',
+                        frontWeight: 600,
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setPeriodoReporte(p)}>
+                      {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}
+                    </button>
                 ))}
               </div>
             </div>
 
             {/* Alertas stock */}
             {alertas.length > 0 && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-lg)', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <AlertTriangle size={20} color='var(--error)' style={{ marginTop: '0.125rem', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ color: 'var(--error)' }}>Alertas de stock bajo</strong>
-                  <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.06)', 
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem', 
+                marginBottom: '1.5rem',
+                display: 'flex', 
+                gap: '1rem', 
+                alignItems: 'center',
+                boxShadow: '0 4px 12px rgba(239,68,68,0.03)' 
+                }}>
+                  <div style={{
+                    background: 'var(--error)',
+                    color: '#ffffff',
+                    padding: '0.6 rem',
+                    borderRadius: '50%',
+                    display: 'flex' 
+                  }}>
+                    <AlertTriangle size={28}/>
+                  </div>
+                <div style={{flex: 1}}>
+                  <strong style={{ color: 'var(--error)', fontSize: '0.95rem',display: 'block', marginBottom: '0.5rem' }}>Alertas de stock bajo ({alertas.length})</strong>
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.5rem' }}>
                     {alertas.map(a => (
-                      <span key={a.id} className="badge badge-error">{a.nombre}: {a.stock} uds.</span>
+                      <span key={a.id} className="badge badge-error" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem',borderRadius: '0.5rem' }}>
+                        {a.nombre}: {a.stock} uds.
+                      </span>
                     ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* KPIs */}
-            <div className="grid-4" style={{ marginBottom: '2rem' }}>
-              <div className="stat-card">
-                <div className="stat-label">Ventas {periodoReporte === 'dia' ? 'del día' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
-                <div className="stat-value">${reporte ? reporte.total_ventas.toFixed(2) : '—'}</div>
-                <div className="stat-sub">{reporte?.num_ordenes ?? 0} órdenes cerradas</div>
+            {/* KPIs*/}
+            <div className="grid-4" style={{ marginBottom: '2rem', grap: '1.5rem' }}>
+              {/* KPI de VENTAS*/}
+              <div className="stat-card" style={{ 
+                background: 'var(--bg-primary)', 
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)', 
+                display: 'flex',
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden'
+                }}>
+                <div>  
+                <div className="stat-label" style={{ 
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  marginBottom: '0.5rem',
+                  }}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}
+                </div>
+                <div className="stat-value"style={{
+                  fonrSize: '1.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '0.4rem'}}
+                  >${reporte ? reporte.total_ventas.toFixed(2) : '—'}
+                </div>
+                <div className="stat-sub" style={{ 
+                  fontSize: '0.8rem',
+                  color: 'var(--success)',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem'}}>
+                    <span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span>
+                </div>
               </div>
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)', 
+                  color: 'var(--success)', 
+                  padding: '0.75rem', 
+                  borderRadius: '1rem', 
+                  height: 'fit-content'
+              }}>
+                <DollarSign size={28} />
+              </div>
+            </div>    
               <div className="stat-card">
                 <div className="stat-label">Órdenes abiertas</div>
                 <div className="stat-value">{ordenes.length}</div>
