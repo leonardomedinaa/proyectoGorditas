@@ -202,22 +202,55 @@ export default function Admin() {
             </div>
 
             {reporte && (
-              <div className="grid-2" style={{ marginBottom: '2rem' }}>
-                {/* Top productos */}
-                <div className="card">
-                  <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>🏆 Top 5 Productos</h3>
-                  {reporte.top_productos.length === 0
-                    ? <p style={{ color: 'var(--text-secondary)' }}>Sin datos en este período</p>
-                    : (
-                      <ResponsiveContainer width="100%" height={200}>
-                        <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 100 }}>
+              <div className="grid-2" style={{ 
+                marginBottom: '2rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                {/* Top 5 productos */}
+                <div className="card" style={{
+                  padding: '1.5rem',
+                  borderRadius: '1rem',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                }}>
+                  <h3 style={{ 
+                    marginTop: 0, 
+                    marginBottom: '1rem',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'   
+                  }}>
+                    <span>🏆</span>Top 5 Productos más vendidos
+                  </h3>
+                  {reporte.top_productos.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAling: 'center', padding: '2rem 0' }}>
+                      Sin datos en este período
+                    </p>
+                    ): (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 10, right: 10, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-                          <YAxis type="category" dataKey="nombre" width={100} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="nombre" 
+                            width={100} 
+                            tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
                           <Tooltip
-                            contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.5rem' }}
-                            labelStyle={{ color: 'var(--text-primary)' }}
+                            cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                            contentStyle={{ 
+                              background: 'var(--bg-primary)', 
+                              border: '1px solid var(--border)', 
+                              borderRadius: '0.6rem',
+                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
+                            }}
+                            labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }}
                           />
-                          <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
                         </BarChart>
                       </ResponsiveContainer>
                     )
@@ -225,17 +258,62 @@ export default function Admin() {
                 </div>
 
                 {/* Métodos de pago */}
-                <div className="card">
-                  <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>💳 Por método de pago</h3>
-                  {reporte.por_metodo.length === 0
-                    ? <p style={{ color: 'var(--text-secondary)' }}>Sin datos en este período</p>
-                    : (
-                      <ResponsiveContainer width="100%" height={200}>
+                <div className="card" style={{
+                  padding: '1.5rem',
+                  borderRadius: '1rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                }}> 
+                  <h3 style={{ 
+                    marginTop: 0, 
+                    marginBottom: '1rem',
+                    frontSize: '1.1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                    }}>
+                      <span>💳</span> Distribución por método de pago</h3>
+                  {reporte.por_metodo.length === 0 ? ( 
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>
+                      Sin datos en este período
+                    </p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
-                          <Pie data={reporte.por_metodo} dataKey="total" nameKey="metodo" cx="50%" cy="50%" outerRadius={70} label={({ metodo, percent }) => `${metodo} ${(percent*100).toFixed(0)}%`}>
-                            {reporte.por_metodo.map((_, i) => <Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} />)}
+                          <Pie 
+                            data={reporte.por_metodo} 
+                            dataKey="total" 
+                            nameKey="metodo" 
+                            cx="50%" 
+                            cy="45%" 
+                            innerRadius={60}
+                            outerRadius={82} 
+                            paddingAngle={4}
+                          >
+                            {reporte.por_metodo.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill={COLORES_PIE[i % COLORES_PIE.length]}
+                                style= {{outline: 'none'}}
+                              />  
+                            ))}
                           </Pie>
-                          <Tooltip contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.5rem' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              background: 'var(--bg-primary)', 
+                              border: '1px solid var(--border)', 
+                              borderRadius: '0.6rem',
+                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
+                            }} 
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            iconType="circle" 
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '12px',paddingTop: '10px' }} 
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     )
