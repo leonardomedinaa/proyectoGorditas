@@ -3,10 +3,10 @@ import { api, createWS } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
-import '../styles/cocina.css'
+import styles from '../styles/cocina.module.css'
 import { Volume2, VolumeX, RefreshCw, CheckCircle } from 'lucide-react'
 
-// Mapeo de nombre de usuario a estación
+// Mapeo de nombre de usuario a estacion
 function estacionDeUsuario(nombre) {
   const n = nombre.toLowerCase()
   if (n.includes('gordita')) return 'gorditas'
@@ -53,7 +53,7 @@ export default function Cocina() {
         cargar()
       }
     })
-    // Actualización automática de respaldo cada 30 segundos
+    // Actualización automática de respaldo cada 5 segundos
     const intervalo = setInterval(() => {
       cargar()
     }, 5000)
@@ -87,11 +87,12 @@ export default function Cocina() {
     antojitos: '🌮 Estación Antojitos',
   }
 
+  // Si no hay estación asignada
   if (!estacion) {
     return (
-      <div className="page">
+      <div className={styles.page}>
         <Topbar />
-        <div className="content" style={{ textAlign: 'center', paddingTop: 60 }}>
+        <div className={styles.content} style={{ textAlign: 'center', paddingTop: 60 }}>
           <p style={{ color: 'var(--text2)' }}>Este usuario no tiene una estación de cocina asignada.</p>
         </div>
       </div>
@@ -99,28 +100,32 @@ export default function Cocina() {
   }
 
   return (
-    <div className="page">
-      <div className="topbar">
-        <span className="topbar-brand">{TITULO[estacion]}</span>
+    <div className={styles.page}>
+      
+      {/* Topbar local de controles para la Cocina */}
+      <div className={styles.topbar}>
+        <span className={styles['topbar-brand']}>{TITULO[estacion]}</span>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginLeft: 'auto' }}>
           <button
-            className={`btn btn-sm ${sonido ? 'btn-primary' : 'btn-ghost'}`}
+            className={`${styles.btn} ${styles['btn-sm']} ${sonido ? styles['btn-primary'] : styles['btn-ghost']}`}
             onClick={() => setSonido(s => !s)}
             title={sonido ? 'Silenciar notificaciones' : 'Activar notificaciones'}
           >
             {sonido ? <Volume2 size={16} /> : <VolumeX size={16} />}
             {sonido ? 'Sonido ON' : 'Sonido OFF'}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={cargar} title="Recargar comandas">
+          
+          <button className={`${styles.btn} ${styles['btn-ghost']} ${styles['btn-sm']}`} onClick={cargar} title="Recargar comandas">
             <RefreshCw size={16} />
             Actualizar
           </button>
+          
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, backgroundColor: 'rgba(30, 64, 175, 0.1)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
             {grupos.length} orden(es)
           </span>
 
           <button 
-            className="btn btn-error btn-sm" 
+            className={`${styles.btn} ${styles['btn-error']} ${styles['btn-sm']}`}
             onClick={logout}
             style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
           >
@@ -129,7 +134,7 @@ export default function Cocina() {
         </div>
       </div>
 
-      <div className="content">
+      <div className={styles.content}>
         {grupos.length === 0 ? (
           <div style={{ textAlign: 'center', paddingTop: '5rem' }}>
             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
@@ -139,43 +144,50 @@ export default function Cocina() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
             {grupos.map(grupo => (
-              <div key={grupo.orden_id} className="comanda-card">
-                <div className="comanda-header">
-                  <span className="mesa-tag">🪑 {grupo.mesa}</span>
+              <div key={grupo.orden_id} className={styles['comanda-card']}>
+                
+                <div className={styles['comanda-header']}>
+                  <span className={styles['mesa-tag']}>🪑 {grupo.mesa}</span>
                   <span style={{ color: 'var(--text2)', fontSize: 12 }}>Orden #{grupo.orden_id}</span>
                 </div>
+                
                 {grupo.items.map(item => (
-                  <div key={item.item_id} className="comanda-item">
-                    <span className="qty">{item.cantidad}</span>
-                    <div className="info">
-                      <div className="nombre">{item.producto}</div>
-                      {item.modificador && <div className="mod">▸ {item.modificador}</div>}
-                      {item.comentario && <div className="comment">💬 {item.comentario}</div>}
+                  <div key={item.item_id} className={styles['comanda-item']}>
+                    <span className={styles.qty}>{item.cantidad}</span>
+                    
+                    <div className={styles.info}>
+                      <div className={styles.nombre}>{item.producto}</div>
+                      {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
+                      {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
                     </div>
+                    
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-                      <span className={`badge ${
-                        item.estado_cocina === 'listo' ? 'badge-success' :
-                        item.estado_cocina === 'preparando' ? 'badge-warning' : 'badge-gray'
+                      <span className={`${styles.badge} ${
+                        item.estado_cocina === 'listo' ? styles['badge-success'] :
+                        item.estado_cocina === 'preparando' ? styles['badge-warning'] : styles['badge-gray']
                       }`}>
                         {item.estado_cocina === 'listo' && '✓ '}
                         {item.estado_cocina === 'preparando' && '⏱ '}
                         {item.estado_cocina === 'pendiente' && '⭕ '}
                         {item.estado_cocina}
                       </span>
+                      
                       {item.estado_cocina === 'pendiente' && (
-                        <button className="btn btn-primary btn-sm"
+                        <button className={`${styles.btn} ${styles['btn-primary']} ${styles['btn-sm']}`}
                           onClick={() => cambiarEstado(item.orden_id, item.item_id, 'preparando')}>
                           Preparando
                         </button>
                       )}
+                      
                       {item.estado_cocina === 'preparando' && (
-                        <button className="btn btn-success btn-sm"
+                        <button className={`${styles.btn} ${styles['btn-success']} ${styles['btn-sm']}`}
                           onClick={() => cambiarEstado(item.orden_id, item.item_id, 'listo')}>
                           <CheckCircle size={14} />
                           Listo
                         </button>
                       )}
                     </div>
+                    
                   </div>
                 ))}
               </div>

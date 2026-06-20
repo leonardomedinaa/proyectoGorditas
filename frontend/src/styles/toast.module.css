@@ -1,6 +1,6 @@
 .toast-container {
   position: fixed;
-  top: 20px;
+  top: 90px;
   right: 20px;
   z-index: 9999;
   display: flex;
@@ -19,7 +19,7 @@
   padding: 14px 18px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 14px;
+  font-size: clamp(15px, 3.5vw, 17px);
   font-weight: 500;
   color: #ffffff;
   animation: slideIn 0.3s ease-out;
