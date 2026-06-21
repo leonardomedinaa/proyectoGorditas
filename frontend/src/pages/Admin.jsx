@@ -4,7 +4,10 @@ import { api, createWS } from '../api'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
-import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
+  DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
+  ArrowUpRight, LayoutDashboard
+ } from 'lucide-react'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -141,101 +144,433 @@ export default function Admin() {
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
 
   return (
-    <div className="page">
+    <div className="page"
+      style={{
+        background: 'var(--bg-primary)',
+        minHeight: '100vh',
+      }}>
+      <div style={{
+        background: 'var(--bg-primary)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      }}>  
       <Topbar tab={tab} setTab={setTab} tabs={TABS} />
-      <div className="content">
+      </div>
+      <div className="content"
+      style={{
+        padding: '2rem 2rem',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        margin: '0 auto',
+      }}>
 
         {/* ══════════ DASHBOARD ══════════ */}
         {tab === 'dashboard' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-              <h2 style={{ margin: 0 }}>Dashboard</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {['dia','semana','mes'].map(p => (
-                  <button key={p} className={`btn btn-sm ${periodoReporte === p ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setPeriodoReporte(p)}>
-                    {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}
-                  </button>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginBottom: '2rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: '0.75rem' }}>
+                  <div style={{
+                    background: 'var(--primary)',
+                    color: '#ffffff',
+                    padding: '0.6 rem',
+                    borderRadius: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <LayoutDashboard size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)'
+                    }}>Panel de Control</h2>
+                    <p style={{ 
+                      margin: 0,
+                      frontSize: '0.9rem', 
+                      color: 'var(--text-secondary)', 
+                      fontSize: '0.9rem' }}>
+                      Monitoreo rápido de operaciones</p>
+                  </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex',
+                background: 'var(--bg-secondary)',
+                padding: '0.5rem',
+                borderRadius: '2rem',
+                border: '1px solid var(--border)'
+                }}>
+                  {['dia','semana','mes'].map(p => (
+                    <button 
+                      key={p}
+                      style={{
+                        background: periodoReporte === p ? 'var(--primary)' : 'transparent',
+                        color: periodoReporte === p ? '#fff' : 'var(--text-primary)',
+                        border: 'none',
+                        padding: '0.5rem 1.2rem',
+                        borderRadius: '2rem',
+                        frontSize: '0.9rem',
+                        frontWeight: 600,
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setPeriodoReporte(p)}>
+                      {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}
+                    </button>
                 ))}
               </div>
             </div>
 
             {/* Alertas stock */}
             {alertas.length > 0 && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-lg)', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <AlertTriangle size={20} color='var(--error)' style={{ marginTop: '0.125rem', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ color: 'var(--error)' }}>Alertas de stock bajo</strong>
-                  <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.06)', 
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem', 
+                marginBottom: '1.5rem',
+                display: 'flex', 
+                gap: '1rem', 
+                alignItems: 'center',
+                boxShadow: '0 4px 12px rgba(239,68,68,0.03)' 
+                }}>
+                  <div style={{
+                    background: 'var(--error)',
+                    color: '#ffffff',
+                    padding: '0.6 rem',
+                    borderRadius: '50%',
+                    display: 'flex' 
+                  }}>
+                    <AlertTriangle size={28}/>
+                  </div>
+                <div style={{flex: 1}}>
+                  <strong style={{ color: 'var(--error)', fontSize: '0.95rem',display: 'block', marginBottom: '0.5rem' }}>Alertas de stock bajo ({alertas.length})</strong>
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.5rem' }}>
                     {alertas.map(a => (
-                      <span key={a.id} className="badge badge-error">{a.nombre}: {a.stock} uds.</span>
+                      <span key={a.id} className="badge badge-error" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem',borderRadius: '0.5rem' }}>
+                        {a.nombre}: {a.stock} uds.
+                      </span>
                     ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* KPIs */}
-            <div className="grid-4" style={{ marginBottom: '2rem' }}>
-              <div className="stat-card">
-                <div className="stat-label">Ventas {periodoReporte === 'dia' ? 'del día' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
-                <div className="stat-value">${reporte ? reporte.total_ventas.toFixed(2) : '—'}</div>
-                <div className="stat-sub">{reporte?.num_ordenes ?? 0} órdenes cerradas</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Órdenes abiertas</div>
-                <div className="stat-value">{ordenes.length}</div>
-                <div className="stat-sub" style={{ color: 'var(--warning)' }}>${totalActivo.toFixed(2)} en curso</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Mesas disponibles</div>
-                <div className="stat-value" style={{ color: 'var(--success)' }}>{mesasDisponibles}</div>
-                <div className="stat-sub">{mesasOcupadas} ocupadas</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Alertas de stock</div>
-                <div className="stat-value" style={{ color: alertas.length > 0 ? 'var(--error)' : 'var(--success)' }}>
-                  {alertas.length}
+            {/* KPIs*/}
+            <div className="grid-4" style={{ marginBottom: '2rem', grap: '1.5rem' }}>
+              {/* KPI de VENTAS*/}
+              <div className="stat-card" style={{ 
+                background: 'var(--bg-primary)', 
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)', 
+                display: 'flex',
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden'
+                }}>
+                <div>  
+                <div className="stat-label" style={{ 
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  marginBottom: '0.5rem',
+                  }}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}
                 </div>
-                <div className="stat-sub">productos bajo mínimo</div>
+                <div className="stat-value"style={{
+                  fonrSize: '1.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '0.4rem'}}
+                  >${reporte ? reporte.total_ventas.toFixed(2) : '—'}
+                </div>
+                <div className="stat-sub" style={{ 
+                  fontSize: '0.8rem',
+                  color: 'var(--success)',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem'}}>
+                    <span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)', 
+                  color: 'var(--success)', 
+                  padding: '0.75rem', 
+                  borderRadius: '1rem', 
+                  height: 'fit-content'
+              }}>
+                <DollarSign size={28} />
+              </div>
+            </div> 
+
+            {/* KPI 2: Órdenes Activas */}   
+              <div className="stat-card" style={{
+                background: 'var(--bg-primary)',
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}>
+              <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Órdenes abiertas
+                  </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '0.4rem'
+                  }}>{ordenes.length}
+                </div>
+                <div className="stat-sub" style={{ 
+                  color: 'var(--warning)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600
+                  }}>${totalActivo.toFixed(2)} por cobrar
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(251, 191, 36, 0.1)',
+                color: 'var(--warning)',
+                padding: '0.75rem',
+                borderRadius: '1rem',
+                height: 'fit-content'
+              }}>
+                <Clock size={28} />
+              </div>
+            </div>    
+
+            {/* KPI DISPONIBILIDAD DE MESAS */}
+              <div className="stat-card" style={{
+                background: 'var(--bg-primary)',
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                }}>
+                <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Mesas disponibles
+                  </div>
+                  <div className="stat-value" style={{ 
+                    fontSize: '1.75rem',
+                    color: 'var(--success)',
+                    fontWeight: 700,
+                    marginBottom: '0.4rem'
+                    }}>{mesasDisponibles}
+                  </div>
+                  <div className="stat-sub" style={{ 
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}>
+                    {mesasOcupadas} ocupadas
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(59, 130,246, 0.1)',
+                  color: 'rgba(110, 166, 255, 0.986)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  height: 'fit-content'
+                  }}>
+                  <Utensils size={28} />
+                </div>
+              </div>
+
+              {/* KPI 2: Alertas */}
+                <div className="stat-card" style={{
+                  background: 'var(--bg-primary)',
+                  padding: '1.5rem',
+                  borderRadius: '1.25rem',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}>
+                <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Alertas de stock
+                  </div>
+                  <div className="stat-value" style={{ 
+                    fontSize: '1.75rem',
+                    fontWeight: 700,
+                    color: alertas.length > 0 ? 'var(--error)' : 'var(--success)' }}>
+                    {alertas.length}
+                  </div>
+                  <div className="stat-sub" style={{ 
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                    }}>
+                    {alertas.length > 0 ? 'Abastecimiento requerido' : 'Inventario estable'}
+                  </div>
+                </div>
+                <div style={{
+                  background: alertas.length > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                  color: alertas.length > 0 ? 'var(--error)' : 'var(--success)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  height: 'fit-content'
+                }}>
+                  <ShoppingBag size={28} />
+                </div>  
               </div>
             </div>
 
+
+            {/*ESTADISTICAS*/}
             {reporte && (
-              <div className="grid-2" style={{ marginBottom: '2rem' }}>
-                {/* Top productos */}
-                <div className="card">
-                  <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>🏆 Top 5 Productos</h3>
-                  {reporte.top_productos.length === 0
-                    ? <p style={{ color: 'var(--text-secondary)' }}>Sin datos en este período</p>
-                    : (
-                      <ResponsiveContainer width="100%" height={200}>
-                        <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 100 }}>
+              <div className="grid-2" style={{ 
+                marginBottom: '2rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                {/* GRAFICO 1*/}
+                {/* Top 5 productos */}
+                <div className="card" style={{
+                  padding: '1.5rem',
+                  borderRadius: '1.25rem',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                }}>
+                  <h3 style={{ 
+                    marginTop: 0, 
+                    marginBottom: '1.5rem',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'   
+                  }}>
+                    <span>🏆</span>Top 5 Productos más vendidos
+                  </h3>
+                  {reporte.top_productos.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAling: 'center', padding: '2rem 0' }}>
+                      Sin datos en este período
+                    </p>
+                    ): (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 10, right: 10, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-                          <YAxis type="category" dataKey="nombre" width={100} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="nombre" 
+                            width={100}
+                            axisLine={false}
+                            tickLine={false} 
+                            tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
                           <Tooltip
-                            contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.5rem' }}
-                            labelStyle={{ color: 'var(--text-primary)' }}
+                            cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                            contentStyle={{ 
+                              background: 'var(--bg-primary)', 
+                              border: '1px solid var(--border)', 
+                              borderRadius: '0.6rem',
+                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
+                            }}
+                            labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }}
                           />
-                          <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
                         </BarChart>
                       </ResponsiveContainer>
-                    )
-                  }
+                    )}
                 </div>
 
                 {/* Métodos de pago */}
-                <div className="card">
-                  <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>💳 Por método de pago</h3>
-                  {reporte.por_metodo.length === 0
-                    ? <p style={{ color: 'var(--text-secondary)' }}>Sin datos en este período</p>
-                    : (
-                      <ResponsiveContainer width="100%" height={200}>
+                <div className="card" style={{
+                  padding: '1.5rem',
+                  borderRadius: '1rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                }}> 
+                  <h3 style={{ 
+                    marginTop: 0, 
+                    marginBottom: '1rem',
+                    frontSize: '1.1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                    }}>
+                      <span>💳</span> Distribución por método de pago</h3>
+                  {reporte.por_metodo.length === 0 ? ( 
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>
+                      Sin datos en este período
+                    </p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
-                          <Pie data={reporte.por_metodo} dataKey="total" nameKey="metodo" cx="50%" cy="50%" outerRadius={70} label={({ metodo, percent }) => `${metodo} ${(percent*100).toFixed(0)}%`}>
-                            {reporte.por_metodo.map((_, i) => <Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} />)}
+                          <Pie 
+                            data={reporte.por_metodo} 
+                            dataKey="total" 
+                            nameKey="metodo" 
+                            cx="50%" 
+                            cy="45%" 
+                            innerRadius={58}
+                            outerRadius={80} 
+                            paddingAngle={4}
+                          >
+                            {reporte.por_metodo.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill={COLORES_PIE[i % COLORES_PIE.length]}
+                                style= {{outline: 'none'}}
+                              />  
+                            ))}
                           </Pie>
-                          <Tooltip contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.5rem' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              background: 'var(--bg-primary)', 
+                              border: '1px solid var(--border)', 
+                              borderRadius: '0.6rem',
+                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
+                            }} 
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            iconType="circle" 
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '12px',paddingTop: '10px' }} 
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     )
@@ -244,18 +579,63 @@ export default function Admin() {
               </div>
             )}
 
-            {/* Corte de caja rápido */}
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>🏦 Corte de caja (hoy)</h3>
-                <button className="btn btn-ghost btn-sm" onClick={async () => {
-                  const c = await api.get('/reportes/corte-caja')
-                  alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
-                }}>Ver corte</button>
+            {/*Modulo de auditoria de caja*/}
+            <div className="card" style={{
+              padding: '1.5rem',
+              borderRadius: '1.25rem',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alingItems: 'center',
+              flexwrap: 'wrap',
+              gap: '1rem'
+              }}>
+              <div style={{ display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                marginBottom: '1rem',
+                grap: '1rem'}}>
+                <div style={{
+                  background: 'rgba(59,130,246,0.08)',
+                  color: 'var(--primary)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  }}> 
+                  <CheckCircle2 size={28} /> 
+                </div>  
+                <div>
+                <h3 style={{ margin: 0,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)'
+                 }}>🏦 Corte de caja (hoy)</h3>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  margin: '0.2 rem 0 0 0'
+                  }}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
+                </div>  
+              </div>   
+                <button 
+                  className="btn btn-primary" 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '0.75rem',
+                    fontWeight: 600
+                    }}
+                  onClick={async () => {
+                    const c = await api.get('/reportes/corte-caja')
+                    alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
+                  }}>
+                    Ver corte
+                    <ArrowUpRight size={16} />
+                </button>
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Haz clic en "Ver corte" para ver el desglose por método de pago del día.</p>
             </div>
-          </div>
         )}
 
         {/* ══════════ MESAS ══════════ */}
