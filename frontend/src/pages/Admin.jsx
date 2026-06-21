@@ -314,6 +314,7 @@ export default function Admin() {
                     <span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span>
                 </div>
               </div>
+
               <div style={{
                 background: 'rgba(34, 197, 94, 0.1)', 
                   color: 'var(--success)', 
@@ -323,26 +324,138 @@ export default function Admin() {
               }}>
                 <DollarSign size={28} />
               </div>
-            </div>    
-              <div className="stat-card">
-                <div className="stat-label">Órdenes abiertas</div>
-                <div className="stat-value">{ordenes.length}</div>
-                <div className="stat-sub" style={{ color: 'var(--warning)' }}>${totalActivo.toFixed(2)} en curso</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Mesas disponibles</div>
-                <div className="stat-value" style={{ color: 'var(--success)' }}>{mesasDisponibles}</div>
-                <div className="stat-sub">{mesasOcupadas} ocupadas</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Alertas de stock</div>
-                <div className="stat-value" style={{ color: alertas.length > 0 ? 'var(--error)' : 'var(--success)' }}>
-                  {alertas.length}
+            </div> 
+
+            {/* KPI 2: Órdenes Activas */}   
+              <div className="stat-card" style={{
+                background: 'var(--bg-primary)',
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}>
+              <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Órdenes abiertas
+                  </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '0.4rem'
+                  }}>{ordenes.length}
                 </div>
-                <div className="stat-sub">productos bajo mínimo</div>
+                <div className="stat-sub" style={{ 
+                  color: 'var(--warning)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600
+                  }}>${totalActivo.toFixed(2)} por cobrar
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(251, 191, 36, 0.1)',
+                color: 'var(--warning)',
+                padding: '0.75rem',
+                borderRadius: '1rem',
+                height: 'fit-content'
+              }}>
+                <Clock size={28} />
+              </div>
+            </div>    
+
+            {/* KPI DISPONIBILIDAD DE MESAS */}
+              <div className="stat-card" style={{
+                background: 'var(--bg-primary)',
+                padding: '1.5rem',
+                borderRadius: '1.25rem',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                }}>
+                <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Mesas disponibles
+                  </div>
+                  <div className="stat-value" style={{ 
+                    fontSize: '1.75rem',
+                    color: 'var(--success)',
+                    fontWeight: 700,
+                    marginBottom: '0.4rem'
+                    }}>{mesasDisponibles}
+                  </div>
+                  <div className="stat-sub" style={{ 
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}>
+                    {mesasOcupadas} ocupadas
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(59, 130,246, 0.1)',
+                  color: 'rgba(110, 166, 255, 0.986)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  height: 'fit-content'
+                  }}>
+                  <Utensils size={28} />
+                </div>
+              </div>
+
+              {/* KPI 2: Alertas */}
+                <div className="stat-card" style={{
+                  background: 'var(--bg-primary)',
+                  padding: '1.5rem',
+                  borderRadius: '1.25rem',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}>
+                <div>
+                  <div className="stat-label" style={{
+                    color: 'var(--text-secondary)',
+                    frontSize: '0.9rem',
+                    fontWeight: 500,
+                    marginBottom: '0.5rem'
+                    }}>Alertas de stock
+                  </div>
+                  <div className="stat-value" style={{ 
+                    fontSize: '1.75rem',
+                    fontWeight: 700,
+                    color: alertas.length > 0 ? 'var(--error)' : 'var(--success)' }}>
+                    {alertas.length}
+                  </div>
+                  <div className="stat-sub" style={{ 
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                    }}>
+                    {alertas.length > 0 ? 'Abastecimiento requerido' : 'Inventario estable'}
+                  </div>
+                </div>
+                <div style={{
+                  background: alertas.length > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                  color: alertas.length > 0 ? 'var(--error)' : 'var(--success)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  height: 'fit-content'
+                }}>
+                  <ShoppingBag size={28} />
+                </div>  
               </div>
             </div>
 
+
+            {/*ESTADISTICAS*/}
             {reporte && (
               <div className="grid-2" style={{ 
                 marginBottom: '2rem',
@@ -350,17 +463,18 @@ export default function Admin() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
                 gap: '1.5rem'
               }}>
+                {/* GRAFICO 1*/}
                 {/* Top 5 productos */}
                 <div className="card" style={{
                   padding: '1.5rem',
-                  borderRadius: '1rem',
+                  borderRadius: '1.25rem',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border)',
                   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
                 }}>
                   <h3 style={{ 
                     marginTop: 0, 
-                    marginBottom: '1rem',
+                    marginBottom: '1.5rem',
                     fontSize: '1.1rem',
                     fontWeight: 600,
                     display: 'flex',
@@ -380,8 +494,10 @@ export default function Admin() {
                           <YAxis 
                             type="category" 
                             dataKey="nombre" 
-                            width={100} 
-                            tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                            width={100}
+                            axisLine={false}
+                            tickLine={false} 
+                            tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
                           <Tooltip
                             cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                             contentStyle={{ 
@@ -395,8 +511,7 @@ export default function Admin() {
                           <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
                         </BarChart>
                       </ResponsiveContainer>
-                    )
-                  }
+                    )}
                 </div>
 
                 {/* Métodos de pago */}
@@ -430,8 +545,8 @@ export default function Admin() {
                             nameKey="metodo" 
                             cx="50%" 
                             cy="45%" 
-                            innerRadius={60}
-                            outerRadius={82} 
+                            innerRadius={58}
+                            outerRadius={80} 
                             paddingAngle={4}
                           >
                             {reporte.por_metodo.map((_, i) => (
@@ -464,18 +579,63 @@ export default function Admin() {
               </div>
             )}
 
-            {/* Corte de caja rápido */}
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>🏦 Corte de caja (hoy)</h3>
-                <button className="btn btn-ghost btn-sm" onClick={async () => {
-                  const c = await api.get('/reportes/corte-caja')
-                  alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
-                }}>Ver corte</button>
+            {/*Modulo de auditoria de caja*/}
+            <div className="card" style={{
+              padding: '1.5rem',
+              borderRadius: '1.25rem',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alingItems: 'center',
+              flexwrap: 'wrap',
+              gap: '1rem'
+              }}>
+              <div style={{ display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                marginBottom: '1rem',
+                grap: '1rem'}}>
+                <div style={{
+                  background: 'rgba(59,130,246,0.08)',
+                  color: 'var(--primary)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  }}> 
+                  <CheckCircle2 size={28} /> 
+                </div>  
+                <div>
+                <h3 style={{ margin: 0,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)'
+                 }}>🏦 Corte de caja (hoy)</h3>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  margin: '0.2 rem 0 0 0'
+                  }}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
+                </div>  
+              </div>   
+                <button 
+                  className="btn btn-primary" 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '0.75rem',
+                    fontWeight: 600
+                    }}
+                  onClick={async () => {
+                    const c = await api.get('/reportes/corte-caja')
+                    alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
+                  }}>
+                    Ver corte
+                    <ArrowUpRight size={16} />
+                </button>
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>Haz clic en "Ver corte" para ver el desglose por método de pago del día.</p>
             </div>
-          </div>
         )}
 
         {/* ══════════ MESAS ══════════ */}
