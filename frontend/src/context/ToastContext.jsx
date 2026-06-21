@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
-import '../styles/toast.css'
+import styles from '../styles/toast.module.css'
 
 const ToastCtx = createContext(null)
 
@@ -17,14 +17,18 @@ export function ToastProvider({ children }) {
   return (
     <ToastCtx.Provider value={addToast}>
       {children}
-      <div className="toast-container">
+      
+      <div className={styles['toast-container']}>
         {toasts.map(t => (
-          <div key={t.id} className={`toast ${t.type}`}>
+          
+          <div key={t.id} className={`${styles.toast} ${styles[t.type]}`}>
             <span>{icons[t.type]}</span>
             <span>{t.msg}</span>
           </div>
+          
         ))}
       </div>
+      
     </ToastCtx.Provider>
   )
 }
