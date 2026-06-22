@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Power, User } from 'lucide-react' 
 import styles from '../styles/topbar.module.css'
-import logoRestaurante from '../assets/restaurante.png'
+//import logoRestaurante from '../assets/restaurante.png'
 
 export default function Topbar({ tab, setTab, tabs }) {
   const { user, logout } = useAuth()
@@ -27,7 +27,7 @@ export default function Topbar({ tab, setTab, tabs }) {
         </nav>
       )}
 
-      <img src={logoRestaurante} className={styles['topbar-logo']} alt="Las tres Marías"/>
+      {/*<img src={logoRestaurante} className={styles['topbar-logo']} alt="Las tres Marías"/>*/}
 
       <div className={styles['topbar-user-section']}>
         <div 
