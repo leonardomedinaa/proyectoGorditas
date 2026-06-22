@@ -30,7 +30,7 @@ export default function Login() {
     } catch (err) {
       const mensajeError = err.response?.data?.detail || err.message || 'Error al iniciar sesión';
       setErrorLocal(mensajeError)
-      toast(mensajeError, 'error');
+      //toast(mensajeError, 'error');
     } finally {
       setLoading(false)
     }

@@ -4,6 +4,7 @@ import { api, createWS } from '../api'
 import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
+import style from '../styles/admin.module.css'
 import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
   ArrowUpRight, LayoutDashboard
@@ -29,12 +30,10 @@ export default function Admin() {
   const [ordenes, setOrdenes] = useState([])
   const [alertas, setAlertas] = useState([])
 
-  // Modal estados
-  const [modalMesa, setModalMesa] = useState(null)  // null | 'nueva' | mesa
+  const [modalMesa, setModalMesa] = useState(null)
   const [modalProducto, setModalProducto] = useState(null)
   const [modalStockId, setModalStockId] = useState(null)
 
-  // Forms
   const [formMesa, setFormMesa] = useState({ nombre: '', capacidad: 4 })
   const [formProd, setFormProd] = useState({ nombre: '', precio: '', estacion: 'gorditas', stock: 100, stock_minimo: 20 })
   const [ajusteStock, setAjusteStock] = useState({ delta: '', motivo: 'ingreso' })
@@ -79,7 +78,6 @@ export default function Admin() {
 
   useEffect(() => { cargarReporte(periodoReporte) }, [periodoReporte])
 
-  // ── Mesas CRUD ──
   const guardarMesa = async () => {
     try {
       if (modalMesa === 'nueva') {
@@ -100,7 +98,6 @@ export default function Admin() {
     catch (e) { toast(e.message, 'error') }
   }
 
-  // ── Productos CRUD ──
   const guardarProducto = async () => {
     try {
       const body = { ...formProd, precio: parseFloat(formProd.precio), stock: parseInt(formProd.stock), stock_minimo: parseInt(formProd.stock_minimo) }
@@ -138,98 +135,36 @@ export default function Admin() {
     } catch (e) { toast(e.message, 'error') }
   }
 
-  // ── Estadísticas rápidas ──
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
 
   return (
-    <div className="page"
-      style={{
-        background: 'var(--bg-primary)',
-        minHeight: '100vh',
-      }}>
-      <div style={{
-        background: 'var(--bg-primary)',
-        borderBottom: '1px solid var(--border)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>  
+    <div className={style.pageContainer}>
+      <div className={style.topbarWrapper}>  
       <Topbar tab={tab} setTab={setTab} tabs={TABS} />
       </div>
-      <div className="content"
-      style={{
-        padding: '2rem 2rem',
-        width: '100%',
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        margin: '0 auto',
-      }}>
+      <div className={style.contentWrapper}>
 
         {/* ══════════ DASHBOARD ══════════ */}
         {tab === 'dashboard' && (
           <div>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              marginBottom: '2rem',
-              flexWrap: 'wrap',
-              gap: '1rem',
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                gap: '0.75rem' }}>
-                  <div style={{
-                    background: 'var(--primary)',
-                    color: '#ffffff',
-                    padding: '0.6 rem',
-                    borderRadius: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}>
+            <div className={style.dashboardHeader}>
+              <div className={style.dashboardTitleGroup}>
+                  <div className={style.dashboardIconWrapper}>
                     <LayoutDashboard size={22} />
                   </div>
                   <div>
-                    <h2 style={{ 
-                      margin: 0, 
-                      fontSize: '1.6rem',
-                      fontWeight: 700,
-                      color: 'var(--text-primary)'
-                    }}>Panel de Control</h2>
-                    <p style={{ 
-                      margin: 0,
-                      frontSize: '0.9rem', 
-                      color: 'var(--text-secondary)', 
-                      fontSize: '0.9rem' }}>
-                      Monitoreo rápido de operaciones</p>
+                    <h2 className={style.dashboardTitle}>Panel de Control</h2>
+                    <p className={style.dashboardSubtitle}>Monitoreo rápido de operaciones</p>
                   </div>
               </div>
 
-              <div style={{ 
-                display: 'flex',
-                background: 'var(--bg-secondary)',
-                padding: '0.5rem',
-                borderRadius: '2rem',
-                border: '1px solid var(--border)'
-                }}>
+              <div className={style.filterGroup}>
                   {['dia','semana','mes'].map(p => (
                     <button 
                       key={p}
-                      style={{
-                        background: periodoReporte === p ? 'var(--primary)' : 'transparent',
-                        color: periodoReporte === p ? '#fff' : 'var(--text-primary)',
-                        border: 'none',
-                        padding: '0.5rem 1.2rem',
-                        borderRadius: '2rem',
-                        frontSize: '0.9rem',
-                        frontWeight: 600,
-                        transition: 'all 0.2s ease',
-                        cursor: 'pointer'
-                      }}
+                      className={`${style.filterButton} ${periodoReporte === p ? style.filterButtonActive : style.filterButtonInactive}`}
                       onClick={() => setPeriodoReporte(p)}>
                       {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : 'Mes'}
                     </button>
@@ -237,37 +172,16 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Alertas stock */}
             {alertas.length > 0 && (
-              <div style={{ 
-                background: 'rgba(239, 68, 68, 0.06)', 
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.25rem', 
-                marginBottom: '1.5rem',
-                display: 'flex', 
-                gap: '1rem', 
-                alignItems: 'center',
-                boxShadow: '0 4px 12px rgba(239,68,68,0.03)' 
-                }}>
-                  <div style={{
-                    background: 'var(--error)',
-                    color: '#ffffff',
-                    padding: '0.6 rem',
-                    borderRadius: '50%',
-                    display: 'flex' 
-                  }}>
+              <div className={style.alertContainer}>
+                  <div className={style.alertIconWrapper}>
                     <AlertTriangle size={28}/>
                   </div>
-                <div style={{flex: 1}}>
-                  <strong style={{ color: 'var(--error)', fontSize: '0.95rem',display: 'block', marginBottom: '0.5rem' }}>Alertas de stock bajo ({alertas.length})</strong>
-                  <div style={{ 
-                    marginTop: '0.75rem', 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: '0.5rem' }}>
+                <div className={style.alertContent}>
+                  <strong className={style.alertTitle}>Alertas de stock bajo ({alertas.length})</strong>
+                  <div className={style.alertBadgesList}>
                     {alertas.map(a => (
-                      <span key={a.id} className="badge badge-error" style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem',borderRadius: '0.5rem' }}>
+                      <span key={a.id} className={`${style.badge} ${style.badgeError} ${style.alertBadgeItem}`}>
                         {a.nombre}: {a.stock} uds.
                       </span>
                     ))}
@@ -276,301 +190,74 @@ export default function Admin() {
               </div>
             )}
 
-            {/* KPIs*/}
-            <div className="grid-4" style={{ marginBottom: '2rem', grap: '1.5rem' }}>
-              {/* KPI de VENTAS*/}
-              <div className="stat-card" style={{ 
-                background: 'var(--bg-primary)', 
-                padding: '1.5rem',
-                borderRadius: '1.25rem',
-                border: '1px solid var(--border)', 
-                display: 'flex',
-                justifyContent: 'space-between',
-                position: 'relative',
-                overflow: 'hidden'
-                }}>
+            <div className={style.kpiGrid}>
+              <div className={`${style.kpiCard} ${style.kpiCard1}`}>
                 <div>  
-                <div className="stat-label" style={{ 
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                  marginBottom: '0.5rem',
-                  }}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}
-                </div>
-                <div className="stat-value"style={{
-                  fonrSize: '1.75rem',
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
-                  marginBottom: '0.4rem'}}
-                  >${reporte ? reporte.total_ventas.toFixed(2) : '—'}
-                </div>
-                <div className="stat-sub" style={{ 
-                  fontSize: '0.8rem',
-                  color: 'var(--success)',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.2rem'}}>
-                    <span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span>
-                </div>
+                <div className={style.kpiLabel}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
+                <div className={`${style.kpiValue} ${style.kpiValue1}`}>${reporte ? reporte.total_ventas.toFixed(2) : '—'}</div>
+                <div className={style.kpiSub1}><span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span></div>
               </div>
-
-              <div style={{
-                background: 'rgba(34, 197, 94, 0.1)', 
-                  color: 'var(--success)', 
-                  padding: '0.75rem', 
-                  borderRadius: '1rem', 
-                  height: 'fit-content'
-              }}>
-                <DollarSign size={28} />
-              </div>
+              <div className={style.kpiIcon1}><DollarSign size={28} /></div>
             </div> 
 
-            {/* KPI 2: Órdenes Activas */}   
-              <div className="stat-card" style={{
-                background: 'var(--bg-primary)',
-                padding: '1.5rem',
-                borderRadius: '1.25rem',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}>
+              <div className={style.kpiCard}>
               <div>
-                  <div className="stat-label" style={{
-                    color: 'var(--text-secondary)',
-                    frontSize: '0.9rem',
-                    fontWeight: 500,
-                    marginBottom: '0.5rem'
-                    }}>Órdenes abiertas
-                  </div>
-                <div className="stat-value" style={{
-                  fontSize: '1.75rem',
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
-                  marginBottom: '0.4rem'
-                  }}>{ordenes.length}
-                </div>
-                <div className="stat-sub" style={{ 
-                  color: 'var(--warning)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600
-                  }}>${totalActivo.toFixed(2)} por cobrar
-                </div>
+                  <div className={style.kpiLabel}>Órdenes abiertas</div>
+                <div className={`${style.kpiValue} ${style.kpiValue2}`}>{ordenes.length}</div>
+                <div className={style.kpiSub2}>${totalActivo.toFixed(2)} por cobrar</div>
               </div>
-              <div style={{
-                background: 'rgba(251, 191, 36, 0.1)',
-                color: 'var(--warning)',
-                padding: '0.75rem',
-                borderRadius: '1rem',
-                height: 'fit-content'
-              }}>
-                <Clock size={28} />
-              </div>
+              <div className={style.kpiIcon2}><Clock size={28} /></div>
             </div>    
 
-            {/* KPI DISPONIBILIDAD DE MESAS */}
-              <div className="stat-card" style={{
-                background: 'var(--bg-primary)',
-                padding: '1.5rem',
-                borderRadius: '1.25rem',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                }}>
+              <div className={style.kpiCard}>
                 <div>
-                  <div className="stat-label" style={{
-                    color: 'var(--text-secondary)',
-                    frontSize: '0.9rem',
-                    fontWeight: 500,
-                    marginBottom: '0.5rem'
-                    }}>Mesas disponibles
-                  </div>
-                  <div className="stat-value" style={{ 
-                    fontSize: '1.75rem',
-                    color: 'var(--success)',
-                    fontWeight: 700,
-                    marginBottom: '0.4rem'
-                    }}>{mesasDisponibles}
-                  </div>
-                  <div className="stat-sub" style={{ 
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 600
-                  }}>
-                    {mesasOcupadas} ocupadas
-                  </div>
+                  <div className={style.kpiLabel}>Mesas disponibles</div>
+                  <div className={`${style.kpiValue} ${style.kpiValue3}`}>{mesasDisponibles}</div>
+                  <div className={style.kpiSub3}>{mesasOcupadas} ocupadas</div>
                 </div>
-                <div style={{
-                  background: 'rgba(59, 130,246, 0.1)',
-                  color: 'rgba(110, 166, 255, 0.986)',
-                  padding: '0.75rem',
-                  borderRadius: '1rem',
-                  height: 'fit-content'
-                  }}>
-                  <Utensils size={28} />
-                </div>
+                <div className={style.kpiIcon3}><Utensils size={28} /></div>
               </div>
 
-              {/* KPI 2: Alertas */}
-                <div className="stat-card" style={{
-                  background: 'var(--bg-primary)',
-                  padding: '1.5rem',
-                  borderRadius: '1.25rem',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}>
+                <div className={style.kpiCard}>
                 <div>
-                  <div className="stat-label" style={{
-                    color: 'var(--text-secondary)',
-                    frontSize: '0.9rem',
-                    fontWeight: 500,
-                    marginBottom: '0.5rem'
-                    }}>Alertas de stock
-                  </div>
-                  <div className="stat-value" style={{ 
-                    fontSize: '1.75rem',
-                    fontWeight: 700,
-                    color: alertas.length > 0 ? 'var(--error)' : 'var(--success)' }}>
-                    {alertas.length}
-                  </div>
-                  <div className="stat-sub" style={{ 
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 600
-                    }}>
-                    {alertas.length > 0 ? 'Abastecimiento requerido' : 'Inventario estable'}
-                  </div>
+                  <div className={style.kpiLabel}>Alertas de stock</div>
+                  <div className={`${style.kpiValue} ${alertas.length > 0 ? style.textError : style.textSuccess}`}>{alertas.length}</div>
+                  <div className={style.kpiSub4}>{alertas.length > 0 ? 'Abastecimiento requerido' : 'Inventario estable'}</div>
                 </div>
-                <div style={{
-                  background: alertas.length > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                  color: alertas.length > 0 ? 'var(--error)' : 'var(--success)',
-                  padding: '0.75rem',
-                  borderRadius: '1rem',
-                  height: 'fit-content'
-                }}>
-                  <ShoppingBag size={28} />
-                </div>  
+                <div className={alertas.length > 0 ? style.kpiIcon4Error : style.kpiIcon4Success}><ShoppingBag size={28} /></div>  
               </div>
             </div>
 
-
-            {/*ESTADISTICAS*/}
             {reporte && (
-              <div className="grid-2" style={{ 
-                marginBottom: '2rem',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '1.5rem'
-              }}>
-                {/* GRAFICO 1*/}
-                {/* Top 5 productos */}
-                <div className="card" style={{
-                  padding: '1.5rem',
-                  borderRadius: '1.25rem',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
-                }}>
-                  <h3 style={{ 
-                    marginTop: 0, 
-                    marginBottom: '1.5rem',
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'   
-                  }}>
-                    <span>🏆</span>Top 5 Productos más vendidos
-                  </h3>
+              <div className={style.chartsGrid}>
+                <div className={style.chartCard1}>
+                  <h3 className={style.chartTitle1}><span>🏆</span>Top 5 Productos más vendidos</h3>
                   {reporte.top_productos.length === 0 ? (
-                    <p style={{ color: 'var(--text-secondary)', textAling: 'center', padding: '2rem 0' }}>
-                      Sin datos en este período
-                    </p>
+                    <p className={style.chartEmpty1}>Sin datos en este período</p>
                     ): (
                       <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 10, right: 10, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-                          <YAxis 
-                            type="category" 
-                            dataKey="nombre" 
-                            width={100}
-                            axisLine={false}
-                            tickLine={false} 
-                            tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
-                          <Tooltip
-                            cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                            contentStyle={{ 
-                              background: 'var(--bg-primary)', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: '0.6rem',
-                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
-                            }}
-                            labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }}
-                          />
+                          <YAxis type="category" dataKey="nombre" width={100} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
+                          <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }} />
                           <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
                 </div>
 
-                {/* Métodos de pago */}
-                <div className="card" style={{
-                  padding: '1.5rem',
-                  borderRadius: '1rem',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
-                }}> 
-                  <h3 style={{ 
-                    marginTop: 0, 
-                    marginBottom: '1rem',
-                    frontSize: '1.1rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                    }}>
-                      <span>💳</span> Distribución por método de pago</h3>
+                <div className={style.chartCard2}> 
+                  <h3 className={style.chartTitle2}><span>💳</span> Distribución por método de pago</h3>
                   {reporte.por_metodo.length === 0 ? ( 
-                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>
-                      Sin datos en este período
-                    </p>
+                    <p className={style.chartEmpty2}>Sin datos en este período</p>
                     ) : (
                       <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
-                          <Pie 
-                            data={reporte.por_metodo} 
-                            dataKey="total" 
-                            nameKey="metodo" 
-                            cx="50%" 
-                            cy="45%" 
-                            innerRadius={58}
-                            outerRadius={80} 
-                            paddingAngle={4}
-                          >
-                            {reporte.por_metodo.map((_, i) => (
-                              <Cell
-                                key={i}
-                                fill={COLORES_PIE[i % COLORES_PIE.length]}
-                                style= {{outline: 'none'}}
-                              />  
-                            ))}
+                          <Pie data={reporte.por_metodo} dataKey="total" nameKey="metodo" cx="50%" cy="45%" innerRadius={58} outerRadius={80} paddingAngle={4}>
+                            {reporte.por_metodo.map((_, i) => (<Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} className={style.pieCell}/>))}
                           </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              background: 'var(--bg-primary)', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: '0.6rem',
-                              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'
-                            }} 
-                          />
-                          <Legend 
-                            verticalAlign="bottom" 
-                            iconType="circle" 
-                            iconSize={8}
-                            wrapperStyle={{ fontSize: '12px',paddingTop: '10px' }} 
-                          />
+                          <Tooltip contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} />
+                          <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px',paddingTop: '10px' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     )
@@ -579,55 +266,15 @@ export default function Admin() {
               </div>
             )}
 
-            {/*Modulo de auditoria de caja*/}
-            <div className="card" style={{
-              padding: '1.5rem',
-              borderRadius: '1.25rem',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alingItems: 'center',
-              flexwrap: 'wrap',
-              gap: '1rem'
-              }}>
-              <div style={{ display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                marginBottom: '1rem',
-                grap: '1rem'}}>
-                <div style={{
-                  background: 'rgba(59,130,246,0.08)',
-                  color: 'var(--primary)',
-                  padding: '0.75rem',
-                  borderRadius: '1rem',
-                  }}> 
-                  <CheckCircle2 size={28} /> 
-                </div>  
+            <div className={style.auditCard}>
+              <div className={style.auditInfoGroup}>
+                <div className={style.auditIconWrap}><CheckCircle2 size={28} /></div>  
                 <div>
-                <h3 style={{ margin: 0,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)'
-                 }}>🏦 Corte de caja (hoy)</h3>
-                <p style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.9rem',
-                  margin: '0.2 rem 0 0 0'
-                  }}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
+                <h3 className={style.auditTitle}>🏦 Corte de caja (hoy)</h3>
+                <p className={style.auditDesc}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
                 </div>  
               </div>   
-                <button 
-                  className="btn btn-primary" 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.6rem 1.2rem',
-                    borderRadius: '0.75rem',
-                    fontWeight: 600
-                    }}
-                  onClick={async () => {
+                <button className={style.auditButton} onClick={async () => {
                     const c = await api.get('/reportes/corte-caja')
                     alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
                   }}>
@@ -641,14 +288,14 @@ export default function Admin() {
         {/* ══════════ MESAS ══════════ */}
         {tab === 'mesas' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>Gestión de Mesas</h2>
-              <button className="btn btn-primary" onClick={() => { setFormMesa({ nombre: '', capacidad: 4 }); setModalMesa('nueva') }}>
+            <div className={style.sectionHeader}>
+              <h2 className={style.sectionTitle}>Gestión de Mesas</h2>
+              <button className={`${style.btn} ${style['btn-primary']}`} onClick={() => { setFormMesa({ nombre: '', capacidad: 4 }); setModalMesa('nueva') }}>
                 <Plus size={18} />
                 Nueva mesa
               </button>
             </div>
-            <div className="table-wrap">
+            <div className={style['table-wrap']}>
               <table>
                 <thead>
                   <tr>
@@ -658,22 +305,22 @@ export default function Admin() {
                 <tbody>
                   {mesas.map(m => (
                     <tr key={m.id}>
-                      <td style={{ fontWeight: 500 }}>{m.nombre}</td>
+                      <td className={style.tableThFont}>{m.nombre}</td>
                       <td>{m.capacidad} personas</td>
                       <td>
-                        <span className={`badge ${m.estado === 'disponible' ? 'badge-success' : 'badge-warning'}`}>
+                        <span className={`${style.badge} ${m.estado === 'disponible' ? style['badge-success'] : style['badge-warning']}`}>
                           {m.estado}
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => {
+                        <div className={style.tableActionsGroup}>
+                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => {
                             setFormMesa({ nombre: m.nombre, capacidad: m.capacidad })
                             setModalMesa(m)
                           }} title="Editar">
                             <Edit2 size={16} />
                           </button>
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => eliminarMesa(m.id)} title="Eliminar">
+                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']} ${style.btnErrorText}`} onClick={() => eliminarMesa(m.id)} title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -689,9 +336,9 @@ export default function Admin() {
         {/* ══════════ PRODUCTOS ══════════ */}
         {tab === 'productos' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>Gestión de Productos</h2>
-              <button className="btn btn-primary" onClick={() => {
+            <div className={style.sectionHeader}>
+              <h2 className={style.sectionTitle}>Gestión de Productos</h2>
+              <button className={`${style.btn} ${style['btn-primary']}`} onClick={() => {
                 setFormProd({ nombre: '', precio: '', estacion: 'gorditas', stock: 100, stock_minimo: 20, activo: true })
                 setModalProducto('nuevo')
               }}>
@@ -699,40 +346,40 @@ export default function Admin() {
                 Nuevo producto
               </button>
             </div>
-            <div className="table-wrap">
+            <div className={style['table-wrap']}>
               <table>
                 <thead>
                   <tr><th>Nombre</th><th>Precio</th><th>Estación</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr>
                 </thead>
                 <tbody>
                   {productos.map(p => (
-                    <tr key={p.id} style={{ opacity: p.activo ? 1 : 0.6 }}>
-                      <td style={{ fontWeight: 500 }}>{p.nombre}</td>
-                      <td style={{ color: 'var(--primary)', fontWeight: 700 }}>${p.precio.toFixed(2)}</td>
-                      <td><span className="badge badge-gray">{p.estacion}</span></td>
+                    <tr key={p.id} className={p.activo ? style.tableRowActive : style.tableRowInactive}>
+                      <td className={style.tableThFont}>{p.nombre}</td>
+                      <td className={style.tablePriceText}>${p.precio.toFixed(2)}</td>
+                      <td><span className={`${style.badge} ${style['badge-gray']}`}>{p.estacion}</span></td>
                       <td>
-                        <span style={{ color: p.stock <= p.stock_minimo ? 'var(--error)' : 'var(--text-primary)', fontWeight: 600 }}>
+                        <span className={`${style.stockTextBase} ${p.stock <= p.stock_minimo ? style.stockTextError : style.stockTextNormal}`}>
                           {p.stock} uds.
                         </span>
-                        {p.stock <= p.stock_minimo && <span className="badge badge-error" style={{ marginLeft: '0.5rem' }}>⚠️ bajo</span>}
+                        {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>⚠️ bajo</span>}
                       </td>
                       <td>
-                        <span className={`badge ${p.activo ? 'badge-success' : 'badge-gray'}`}>
+                        <span className={`${style.badge} ${p.activo ? style['badge-success'] : style['badge-gray']}`}>
                           {p.activo ? 'activo' : 'inactivo'}
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => {
+                        <div className={style.tableActionsGroup}>
+                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => {
                             setFormProd({ nombre: p.nombre, precio: p.precio, estacion: p.estacion, stock: p.stock, stock_minimo: p.stock_minimo, activo: p.activo })
                             setModalProducto(p)
                           }} title="Editar">
                             <Edit2 size={16} />
                           </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setModalStockId(p.id)} title="Ajustar stock">
+                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => setModalStockId(p.id)} title="Ajustar stock">
                             <TrendingUp size={16} />
                           </button>
-                          <button className={`btn btn-sm ${p.activo ? 'btn-error' : 'btn-success'}`} onClick={() => toggleActivoProducto(p)}>
+                          <button className={`${style.btn} ${style['btn-sm']} ${p.activo ? style['btn-error'] : style['btn-success']}`} onClick={() => toggleActivoProducto(p)}>
                             {p.activo ? 'Desactivar' : 'Activar'}
                           </button>
                         </div>
@@ -748,40 +395,36 @@ export default function Admin() {
         {/* ══════════ ÓRDENES ══════════ */}
         {tab === 'ordenes' && (
           <div>
-            <h2 style={{ marginBottom: '1.5rem' }}>Órdenes Activas</h2>
+            <h2 className={style.sectionTitleMb}>Órdenes Activas</h2>
             {ordenes.length === 0
-              ? <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>✓ Sin órdenes abiertas</p>
+              ? <div className={style.ordenesEmptyWrap}>
+                  <p className={style.ordenesEmptyText}>✓ Sin órdenes abiertas</p>
                 </div>
-              : <div className="ordenes-grid">
+              : <div className={style['ordenes-grid']}>
                   {ordenes.map(o => (
-                    <div key={o.id} className="orden-card">
-                      <div className="orden-header">
+                    <div key={o.id} className={style.ordenCard}>
+                      <div className={style.ordenHeader}>
                         <div>
-                          <div className="orden-mesa">{o.mesa_nombre}</div>
-                          <div className="orden-number">#{o.id}</div>
+                          <div className={style.ordenMesa}>{o.mesa_nombre}</div>
+                          <div className={style.ordenNumber}>#{o.id}</div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)' }}>
-                            {new Date(o.creado_en).toLocaleTimeString()}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)' }}>
-                            {o.mesero_nombre}
-                          </div>
+                        <div className={style.ordenTimeInfoWrap}>
+                          <div className={style.ordenTimeText}>{new Date(o.creado_en).toLocaleTimeString()}</div>
+                          <div className={style.ordenTimeText}>{o.mesero_nombre}</div>
                         </div>
                       </div>
-                      <div className="orden-body">
+                      <div className={style.ordenBody}>
                         {o.items.map(item => (
-                          <div key={item.id} className="orden-item">
-                            <div className="orden-qty">{item.cantidad}x</div>
-                            <div className="orden-producto">
-                              <div className="orden-producto-name">{item.producto_nombre}</div>
-                              {item.modificador_nombre && <div className="orden-producto-mod">▸ {item.modificador_nombre}</div>}
+                          <div key={item.id} className={style.ordenItem}>
+                            <div className={style.ordenQty}>{item.cantidad}x</div>
+                            <div className={style.ordenProducto}>
+                              <div className={style.ordenProductoName}>{item.producto_nombre}</div>
+                              {item.modificador_nombre && <div className={style.ordenProductoMod}>▸ {item.modificador_nombre}</div>}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span className={`badge ${
-                                item.estado_cocina === 'listo' ? 'badge-success' :
-                                item.estado_cocina === 'preparando' ? 'badge-warning' : 'badge-gray'
+                            <div className={style.ordenStatusGroup}>
+                              <span className={`${style.badge} ${
+                                item.estado_cocina === 'listo' ? style['badge-success'] :
+                                item.estado_cocina === 'preparando' ? style['badge-warning'] : style['badge-gray']
                               }`}>
                                 {item.estado_cocina}
                               </span>
@@ -789,10 +432,10 @@ export default function Admin() {
                           </div>
                         ))}
                       </div>
-                      <div className="orden-footer">
-                        <div className="orden-subtotal">
+                      <div className={style.ordenFooter}>
+                        <div className={style.ordenSubtotal}>
                           <span>Total:</span>
-                          <span style={{ color: 'var(--primary)' }}>${o.total.toFixed(2)}</span>
+                          <span className={style.ordenTotalText}>${o.total.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -805,16 +448,16 @@ export default function Admin() {
         {/* ══════════ INVENTARIO ══════════ */}
         {tab === 'inventario' && (
           <div>
-            <h2 style={{ marginBottom: '1.5rem' }}>Inventario</h2>
+            <h2 className={style.sectionTitleMb}>Inventario</h2>
             {alertas.length > 0 && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-lg)', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <AlertTriangle size={20} color='var(--error)' style={{ marginTop: '0.125rem', flexShrink: 0 }} />
+              <div className={style.invAlertWrap}>
+                <AlertTriangle size={20} color='var(--error)' className={style.invAlertIcon} />
                 <div>
-                  <strong style={{ color: 'var(--error)' }}>{alertas.length} producto(s) con stock bajo</strong>
+                  <strong className={style.invAlertText}>{alertas.length} producto(s) con stock bajo</strong>
                 </div>
               </div>
             )}
-            <div className="table-wrap">
+            <div className={style['table-wrap']}>
               <table>
                 <thead>
                   <tr><th>Producto</th><th>Estación</th><th>Stock actual</th><th>Mínimo</th><th>Estado</th><th>Acción</th></tr>
@@ -822,20 +465,20 @@ export default function Admin() {
                 <tbody>
                   {productos.filter(p => p.activo).map(p => (
                     <tr key={p.id}>
-                      <td style={{ fontWeight: 500 }}>{p.nombre}</td>
-                      <td><span className="badge badge-gray">{p.estacion}</span></td>
-                      <td style={{ fontWeight: 700, color: p.stock <= p.stock_minimo ? 'var(--error)' : 'var(--text-primary)' }}>
+                      <td className={style.tableThFont}>{p.nombre}</td>
+                      <td><span className={`${style.badge} ${style['badge-gray']}`}>{p.estacion}</span></td>
+                      <td className={`${style.stockTextBase} ${p.stock <= p.stock_minimo ? style.stockTextError : style.stockTextNormal}`}>
                         {p.stock}
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>{p.stock_minimo}</td>
                       <td>
                         {p.stock <= p.stock_minimo
-                          ? <span className="badge badge-error">⚠️ Stock bajo</span>
-                          : <span className="badge badge-success">✓ OK</span>
+                          ? <span className={`${style.badge} ${style['badge-error']}`}>⚠️ Stock bajo</span>
+                          : <span className={`${style.badge} ${style['badge-success']}`}>✓ OK</span>
                         }
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setModalStockId(p.id); setAjusteStock({ delta: '', motivo: 'ingreso' }) }}>
+                        <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => { setModalStockId(p.id); setAjusteStock({ delta: '', motivo: 'ingreso' }) }}>
                           Ajustar
                         </button>
                       </td>
@@ -848,43 +491,42 @@ export default function Admin() {
         )}
       </div>
 
-      {/* ── MODAL MESA ── */}
+      {/* ── MODALES ── */}
       {modalMesa && (
         <Modal title={modalMesa === 'nueva' ? 'Nueva Mesa' : 'Editar Mesa'} onClose={() => setModalMesa(null)}
           footer={<>
-            <button className="btn btn-ghost" onClick={() => setModalMesa(null)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarMesa}>Guardar</button>
+            <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalMesa(null)}>Cancelar</button>
+            <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarMesa}>Guardar</button>
           </>}
         >
-          <div className="form-field">
+          <div className={style['form-field']}>
             <label>Nombre</label>
             <input value={formMesa.nombre} onChange={e => setFormMesa(f => ({ ...f, nombre: e.target.value }))} placeholder="ej. Mesa 5" />
           </div>
-          <div className="form-field">
+          <div className={style['form-field']}>
             <label>Capacidad (personas)</label>
             <input type="number" min="1" value={formMesa.capacidad} onChange={e => setFormMesa(f => ({ ...f, capacidad: parseInt(e.target.value) }))} />
           </div>
         </Modal>
       )}
 
-      {/* ── MODAL PRODUCTO ── */}
       {modalProducto && (
         <Modal title={modalProducto === 'nuevo' ? 'Nuevo Producto' : 'Editar Producto'} onClose={() => setModalProducto(null)}
           footer={<>
-            <button className="btn btn-ghost" onClick={() => setModalProducto(null)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarProducto}>Guardar</button>
+            <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalProducto(null)}>Cancelar</button>
+            <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarProducto}>Guardar</button>
           </>}
         >
-          <div className="form-field">
+          <div className={style['form-field']}>
             <label>Nombre</label>
             <input value={formProd.nombre} onChange={e => setFormProd(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del producto" />
           </div>
-          <div className="grid-2">
-            <div className="form-field">
+          <div className={style['grid-2']}>
+            <div className={style['form-field']}>
               <label>Precio ($)</label>
               <input type="number" step="0.5" min="0" value={formProd.precio} onChange={e => setFormProd(f => ({ ...f, precio: e.target.value }))} placeholder="0.00" />
             </div>
-            <div className="form-field">
+            <div className={style['form-field']}>
               <label>Estación</label>
               <select value={formProd.estacion} onChange={e => setFormProd(f => ({ ...f, estacion: e.target.value }))}>
                 <option value="gorditas">Gorditas</option>
@@ -893,12 +535,12 @@ export default function Admin() {
               </select>
             </div>
           </div>
-          <div className="grid-2">
-            <div className="form-field">
+          <div className={style['grid-2']}>
+            <div className={style['form-field']}>
               <label>Stock inicial</label>
               <input type="number" min="0" value={formProd.stock} onChange={e => setFormProd(f => ({ ...f, stock: e.target.value }))} />
             </div>
-            <div className="form-field">
+            <div className={style['form-field']}>
               <label>Stock mínimo (alerta)</label>
               <input type="number" min="0" value={formProd.stock_minimo} onChange={e => setFormProd(f => ({ ...f, stock_minimo: e.target.value }))} />
             </div>
@@ -906,24 +548,23 @@ export default function Admin() {
         </Modal>
       )}
 
-      {/* ── MODAL AJUSTE STOCK ── */}
       {modalStockId && (
         <Modal title="Ajuste de Stock" onClose={() => setModalStockId(null)}
           footer={<>
-            <button className="btn btn-ghost" onClick={() => setModalStockId(null)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={aplicarAjusteStock}>Aplicar</button>
+            <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalStockId(null)}>Cancelar</button>
+            <button className={`${style.btn} ${style['btn-primary']}`} onClick={aplicarAjusteStock}>Aplicar</button>
           </>}
         >
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+          <p className={style.modalHelpText}>
             Usa valores positivos para agregar stock, negativos para reducirlo.
           </p>
-          <div className="form-field">
+          <div className={style['form-field']}>
             <label>Cantidad (ej. +50 o -10)</label>
             <input type="number" value={ajusteStock.delta}
               onChange={e => setAjusteStock(a => ({ ...a, delta: e.target.value }))}
               placeholder="ej. 50" />
           </div>
-          <div className="form-field">
+          <div className={style['form-field']}>
             <label>Motivo</label>
             <select value={ajusteStock.motivo} onChange={e => setAjusteStock(a => ({ ...a, motivo: e.target.value }))}>
               <option value="ingreso">Ingreso de mercancía</option>
