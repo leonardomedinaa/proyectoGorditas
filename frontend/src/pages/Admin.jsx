@@ -8,7 +8,11 @@ import style from '../styles/admin.module.css'
 import jsPDF from 'jspdf'
 import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
+<<<<<<< HEAD
   ArrowUpRight, Lock as LockIcon
+=======
+  ArrowUpRight, LayoutDashboard, Lock as LockIcon
+>>>>>>> 0618b31 (	Boton de cierre de corte)
  } from 'lucide-react'
 
 const TABS = [
@@ -51,6 +55,7 @@ export default function Admin() {
       setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
     } catch { toast('Error al cargar datos', 'error') }
   }, [toast])
+  }, [toast])
 
   useEffect(() => {
     cargarTodo()
@@ -69,12 +74,17 @@ export default function Admin() {
       }
     })
     return unsub
+<<<<<<< HEAD
   }, [cargarTodo])
+=======
+  }, [])
+>>>>>>> 0618b31 (	Boton de cierre de corte)
 
   //generador de pdf
   const generarPDFCorte =(datos,periodo)=>{
     const doc=new jsPDF()
     const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
+<<<<<<< HEAD
     const resumenArray = datos.resumen || [];
     const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta');
     const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia');
@@ -83,6 +93,9 @@ export default function Admin() {
     const tarjeta = tarjetaObj ? tarjetaObj.total : 0;
     const transferencia = transferenciaObj ? transferenciaObj.total : 0;
     const totalGeneral = datos.total_general || 0;
+=======
+
+>>>>>>> 0618b31 (	Boton de cierre de corte)
     doc.setFillColor(31,41,55)
     doc.rect(0,0,210,35,'F')
     doc.setFont("helvetica","bold")
@@ -112,6 +125,7 @@ export default function Admin() {
     
     doc.setFont("Helvetica", "normal")
     doc.text("Efectivo Esperado en Caja:", 22, 83)
+<<<<<<< HEAD
     doc.text(`$${(efectivo).toFixed(2)}`, 150, 83)
     
     doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
@@ -119,12 +133,25 @@ export default function Admin() {
     
     doc.text("Pagos Recibidos por Transferencia:", 22, 103)
     doc.text(`$${(transferencia).toFixed(2)}`, 150, 103)
+=======
+    doc.text(`$${(datos.efectivo_esperado || 0).toFixed(2)}`, 150, 83)
+    
+    doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
+    doc.text(`$${(datos.pagos_tarjeta || 0).toFixed(2)}`, 150, 93)
+    
+    doc.text("Pagos Recibidos por Transferencia:", 22, 103)
+    doc.text(`$${(datos.pagos_transferencia || 0).toFixed(2)}`, 150, 103)
+>>>>>>> 0618b31 (	Boton de cierre de corte)
     
     doc.line(22, 110, 188, 110)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
     doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
+<<<<<<< HEAD
     doc.text(`$${(totalGeneral).toFixed(2)}`, 150, 119)
+=======
+    doc.text(`$${(datos.total_general || 0).toFixed(2)}`, 150, 119)
+>>>>>>> 0618b31 (	Boton de cierre de corte)
     
     doc.setFontSize(9)
     doc.setFont("helvetica", "italic")
@@ -134,7 +161,22 @@ export default function Admin() {
     doc.save(`Corte_${labelPeriodo}_${new Date().toISOString().split('T')[0]}.pdf`)
   }  
 
+<<<<<<< HEAD
 const guardarMesa = async () => {
+=======
+  const procesarCerrarTurno =async() =>{
+    if (!confirm(`¿Estás seguro de que deseas CERRAR EL TURNO para el período (${periodoReporte.toUpperCase()})? Esto descargará el reporte final del dia.`)) return
+    try {
+      const datosCierre = await api.get(`/reportes/corte-caja?periodo=${periodoReporte}`)
+      generarPDFCorte(datosCierre, periodoReporte)
+      toast('Turno cerrado exitosamente. Descargando PDF...', 'success')
+      cargarTodo()
+    } catch { toast('Error al procesar el cierre de turno', 'error') }
+
+  }
+  
+  const guardarMesa = async () => {
+>>>>>>> 0618b31 (	Boton de cierre de corte)
     try {
       if (modalMesa === 'nueva') {
         // 1. Verificamos si existe una mesa con ese nombre (ignora mayúsculas/minúsculas)
@@ -360,8 +402,13 @@ const guardarMesa = async () => {
             {/*CIERRE DE TURNO*/}
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
+<<<<<<< HEAD
                 <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
                   <CheckCircle2 size={28}  color="var(--primary)"/>
+=======
+                <div className={style.auditIconWrap}>
+                  <CheckCircle2 size={28} />
+>>>>>>> 0618b31 (	Boton de cierre de corte)
                 </div>  
                 <div>
                 <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
@@ -377,12 +424,19 @@ const guardarMesa = async () => {
                     <ArrowUpRight size={16} />
                 </button>
               </div>
+<<<<<<< HEAD
               <div className={style.auditCard}>
                 <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
                   <LockIcon size={16} />
                   Cerrar Turno (PDF)
                 </button>
               </div>
+=======
+              <button className={style.auditButton} onClick={procesarCerrarTurno}>
+                  <LockIcon size={16} />
+                  Cerrar Turno (PDF)
+                </button>
+>>>>>>> 0618b31 (	Boton de cierre de corte)
             </div> 
         )}
 
