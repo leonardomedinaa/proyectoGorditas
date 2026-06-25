@@ -25,6 +25,9 @@ export default function Mesero() {
   const [modalPago, setModalPago] = useState(null)   
   const [modalDivision, setModalDivision] = useState(null)
 
+  // Modos globales de la interfaz
+  const [modoCobroActivo, setModoCobroActivo] = useState(false)
+
   // Carrito
   const [carrito, setCarrito] = useState([])
   const [filtroEstacion, setFiltroEstacion] = useState('todos')
@@ -87,7 +90,7 @@ export default function Mesero() {
     return unsub
   }, [])
 
-  // ── Carrito helpers ──
+  // ── Carrito ──
   const agregarAlCarrito = (producto, modificador = null) => {
     const key = `${producto.id}_${modificador?.id ?? 'base'}_c${comensalActivo}`
     setCarrito(prev => {
@@ -120,9 +123,11 @@ export default function Mesero() {
   const totalCarrito = carrito.reduce((s, c) => s + c.precio * c.cantidad, 0)
 
   // ── Enviar orden ──
+  let enviandoComanda = false;
   const enviarOrden = async () => {
     if (!mesaSeleccionada || carrito.length === 0) return
     try {
+      enviandoComanda = true;
       const items = carrito.map(c => ({
         producto_id: c.producto.id,
         modificador_id: c.modificador?.id ?? null,
@@ -140,6 +145,7 @@ export default function Mesero() {
       cargarDatos()
     } catch (e) {
       toast(e.message, 'error')
+      enviandoComanda = false;
     }
   }
 
@@ -160,6 +166,11 @@ export default function Mesero() {
       items: todosLosItems,      
       ordenes_ids: ordenesAbiertas.map(o => o.id) 
     }
+  }
+
+  const verificarTodoListo = (orden) => {
+    if (!orden || !orden.items) return false
+    return orden.items.every(item => item.estado_cocina === 'listo')
   }
 
   const abrirPago = (orden) => {
@@ -205,16 +216,28 @@ export default function Mesero() {
         {/* ── TAB MESAS ── */}
         {tab === 'mesas' && (
           <div className={styles['main-container']}>
-            {/* Encabezado Estilizado con Leyendas */}
             <div className={styles['mapa-header']}>
               <h1>Mapa de Mesas</h1>
-              <div className={styles['leyenda-container']}>
-                <div className={styles['leyenda-item']}>
-                  <span className={`${styles.dot} ${styles.disponible}`}></span> Disponible
+              
+              <div className={styles['header-controls']}>
+                <div className={styles['leyenda-container']}>
+                  <div className={styles['leyenda-item']}>
+                    <span className={`${styles.dot} ${styles.disponible}`}></span> Disponible
+                  </div>
+                  <div className={styles['leyenda-item']}>
+                    <span className={`${styles.dot} ${styles.ocupada}`}></span> Ocupada
+                  </div>
                 </div>
-                <div className={styles['leyenda-item']}>
-                  <span className={`${styles.dot} ${styles.ocupada}`}></span> Ocupada
-                </div>
+
+                {/* EL BOTON SOLO APARECE SI HAY ORDENES ABIERTAS */}
+                {ordenes.some(o => o.estado === 'abiega' || o.estado === 'abierta') && (
+                  <button
+                    className={`${styles.btn} ${modoCobroActivo ? styles['btn-cancelar'] : styles['btn-primary']} ${styles['btn-modo-cobro']}`}
+                    onClick={() => setModoCobroActivo(!modoCobroActivo)}
+                  >
+                    {modoCobroActivo ? 'Cancelar Cobro' : 'Cobrar una Mesa'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -228,19 +251,37 @@ export default function Mesero() {
                   return (
                     <div
                       key={mesa.id}
-                      className={`${styles['mesa-card']} ${styles[mesa.estado]}`}
+                      className={`${styles['mesa-card']} ${styles[mesa.estado]} ${modoCobroActivo && orden && !esDeOtroMesero ? styles['mesa-cobro-pendiente'] : ''}`}
                       onClick={() => {
                         if (esDeOtroMesero) {
                           toast('Esta mesa está siendo atendida por otro mesero', 'info');
                           return;
                         }
-                        setMesaSeleccionada(mesa)
-                        setCarrito([])
-                        setComensalActivo(1) 
-                        setModalOrden(true)
+
+                        // LOGICA DEL MODO ACTIVADO:
+                        if (modoCobroActivo) {
+                          if (orden) {
+                            if(!verificarTodoListo(orden)){
+                              toast('Cocina aún no termina el pedido', 'warning');
+                              return;
+                            }
+                            
+                            abrirPago(orden);
+                            setModoCobroActivo(false);
+                          } else {
+                            toast('Esta mesa no tiene cuentas activas por cobrar', 'warning');
+                          }
+                        } else {
+                          setMesaSeleccionada(mesa)
+                          setCarrito([])
+                          setComensalActivo(1) 
+                          setModalOrden(true)
+                        }
                       }}
+                      /* Si el modo cobro esta activo pero la mesa esta libre o es de otro mesero, la opacamos */
+                      style={modoCobroActivo && (!orden || esDeOtroMesero) ? { opacity: 0.3, cursor: 'not-allowed' } : {}}
                     >
-                      {/* Cuerpo de la Tarjeta (Icono, Nombre, Capacidad, Info extra) */}
+                      {/* Cuerpo de la Tarjeta (Icono, Nombre, Capacidad) */}
                       <div className={styles['mesa-body']}>
                         <span style={{ fontSize: 36 }}>🪑</span>
                         <span className={styles['mesa-nombre']}>{mesa.nombre}</span>
@@ -254,24 +295,13 @@ export default function Mesero() {
                             <span style={{ fontSize: 14, fontWeight: 700, color: '#be5a1c' }}>
                               ${orden.total.toFixed(2)}
                             </span>
-                            <button
-                              className={`${styles.btn} ${styles['btn-primary']} btn-sm`}
-                              disabled={esDeOtroMesero}
-                              style={esDeOtroMesero ? { opacity: 0.4, cursor: 'not-allowed', backgroundColor: '#666', marginTop: 4 } : { marginTop: 4 }}
-                              onClick={e => { 
-                                e.stopPropagation(); 
-                                if (!esDeOtroMesero) abrirPago(orden);
-                              }}
-                            >
-                              {esDeOtroMesero ? 'Bloqueado' : 'Cobrar'}
-                            </button>
                           </div>
                         )}
                       </div>
 
                       {/* Bloque de Estado Inferior */}
                       <div className={styles['mesa-estado-block']}>
-                        {mesa.estado}
+                        {modoCobroActivo && orden && !esDeOtroMesero ? 'COBRAR AQUÍ' : mesa.estado}
                       </div>
                     </div>
                   )
@@ -302,7 +332,15 @@ export default function Mesero() {
                         <strong style={{ color: '#be5a1c', fontSize: 16 }}>${orden.total.toFixed(2)}</strong>
                         <button 
                           className={`${styles.btn} ${styles['btn-primary']} btn-sm`} 
-                          onClick={() => abrirPago(orden)}
+                          onClick={() => {
+
+                            if(!verificarTodoListo(orden)){
+                              toast('Cocina auú no termina el pedido', 'warning')
+                              return
+                            }
+
+                            abrirPago(orden)
+                          }}
                         >
                           Cobrar
                         </button>
@@ -468,10 +506,10 @@ export default function Mesero() {
 
       {/* ── MODAL MODIFICADORES ── */}
       {prodPendiente && (
-        /* 1. Al hacer clic en el fondo, limpiamos el estado para cerrar el modal */
+        /* Al hacer clic en el fondo, se cierra la ventana */
         <div className={styles['modal-overlay']} onClick={() => setProdPendiente(null)}>
           
-          {/* 2. Con stopPropagation evitamos que los clics dentro del cuadro blanco cierren el modal */}
+          {/* Con stopPropagation evitamos que los clics dentro del cuadro cierren el modal */}
           <div className={styles.modal} style={{ maxWidth: 500, width: '90vw' }} onClick={e => e.stopPropagation()}>
             
             {/* Encabezado del modal */}
@@ -484,7 +522,7 @@ export default function Mesero() {
 
             <p style={{ color: '#8a7665', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', padding: '10px 0', width: '100%' }}>
               <button className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente); setProdPendiente(null) }}>
                 <span>Sin modificador</span>
                 <span>${prodPendiente.precio.toFixed(2)}</span>
@@ -525,13 +563,12 @@ export default function Mesero() {
 
       {/* ── MODAL COBRAR ── */}
       {modalPago && (
-        /* Al hacer clic en el fondo oscuro se cierra la ventana */
+        /* Al hacer clic en el fondo, se cierra la ventana */
         <div className={styles['modal-overlay']} onClick={() => setModalPago(null)}>
           
-          {/* Con stopPropagation impedimos que los clics dentro del recuadro blanco cierren el modal */}
+          {/* Con stopPropagation impedimos que los clics dentro del recuadro cierren el modal */}
           <div className={styles.modal} style={{ maxWidth: 600, width: '95vw' }} onClick={e => e.stopPropagation()}>
             
-            {/* Contenedor protector interno */}
             <div className={styles['modal-pago-wrapper']}>
               
               <div className={styles['modal-pago-header']}>
@@ -539,10 +576,10 @@ export default function Mesero() {
                 <button onClick={() => setModalPago(null)} className={styles['btn-cerrar-fino']}>✕</button>
               </div>
 
-              {/* Contenedor principal de items agrupados con scroll interno */}
+              {/* Contenedor principal de itemsb*/}
               <div style={{ maxHeight: '40vh', overflowY: 'auto', marginBottom: 16, paddingRight: 4 }}>
                 {(() => {
-                  // Agrupamos los platillos consumidos por número de comensal
+                  // Platillos consumidos por numero de comensal
                   const clasesComensales = modalPago.items.reduce((acc, item) => {
                     const c = item.comensal || 1;
                     if (!acc[c]) acc[c] = [];
@@ -632,7 +669,6 @@ export default function Mesero() {
                 + Agregar método de pago
               </button>
 
-              {/* Footer integrado de forma nativa con los estilos de botones locales corregidos */}
               <div className={styles['modal-pago-footer']}>
                 <button className={`${styles.btn} ${styles['btn-cancelar']}`} onClick={() => setModalPago(null)}>
                   Cancelar
