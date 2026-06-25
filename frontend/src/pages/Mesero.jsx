@@ -213,7 +213,7 @@ export default function Mesero() {
       <Topbar tab={tab} setTab={setTab} tabs={tabs} />
       <div className={styles.content}>
 
-        {/* ── TAB MESAS ── */}
+{/* ── TAB MESAS ── */}
         {tab === 'mesas' && (
           <div className={styles['main-container']}>
             <div className={styles['mapa-header']}>
@@ -224,6 +224,12 @@ export default function Mesero() {
                   <div className={styles['leyenda-item']}>
                     <span className={`${styles.dot} ${styles.disponible}`}></span> Disponible
                   </div>
+                  
+                  {/* ✨ NUEVA LEYENDA AGREGADA AQUÍ: */}
+                  <div className={styles['leyenda-item']}>
+                    <span className={`${styles.dot}`} style={{ backgroundColor: '#f59e0b' }}></span> Ordenando...
+                  </div>
+
                   <div className={styles['leyenda-item']}>
                     <span className={`${styles.dot} ${styles.ocupada}`}></span> Ocupada
                   </div>
@@ -247,12 +253,21 @@ export default function Mesero() {
                 {mesas.map(mesa => {
                   const orden = ordenDeMesa(mesa)
                   const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
-
+                  
+                  // 1️⃣ PARTE DEL PASO B: Declarar constante de bloqueo en tiempo real
+                  const estaBloqueadaPorOtro = mesa.estado === 'ordenando' && mesa.bloqueada_por && Number(mesa.bloqueada_por) !== Number(user.id);
+                  
                   return (
                     <div
                       key={mesa.id}
                       className={`${styles['mesa-card']} ${styles[mesa.estado]} ${modoCobroActivo && orden && !esDeOtroMesero ? styles['mesa-cobro-pendiente'] : ''}`}
-                      onClick={() => {
+                      onClick={async () => {
+                        // 2️⃣ PARTE DEL PASO B: Freno si la tiene otro compañero
+                        if (estaBloqueadaPorOtro) {
+                          toast('Otro mesero está tomando la orden en este momento ⏳', 'info');
+                          return;
+                        }
+
                         if (esDeOtroMesero) {
                           toast('Esta mesa está siendo atendida por otro mesero', 'info');
                           return;
@@ -272,18 +287,33 @@ export default function Mesero() {
                             toast('Esta mesa no tiene cuentas activas por cobrar', 'warning');
                           }
                         } else {
+                          // 2️⃣ PARTE DEL PASO B: Si está disponible, la bloqueamos proactivamente antes de abrir el modal
+                          if (mesa.estado === 'disponible') {
+                            try {
+                              await api.post(`/mesas/${mesa.id}/bloquear`, { mesero_id: user.id });
+                            } catch (err) {
+                              toast(err.response?.data?.detail || 'No se pudo apartar la mesa', 'error');
+                              return; 
+                            }
+                          }
+
                           setMesaSeleccionada(mesa)
                           setCarrito([])
                           setComensalActivo(1) 
                           setModalOrden(true)
                         }
                       }}
-                      /* Si el modo cobro esta activo pero la mesa esta libre o es de otro mesero, la opacamos */
-                      style={modoCobroActivo && (!orden || esDeOtroMesero) ? { opacity: 0.3, cursor: 'not-allowed' } : {}}
+                      /* 3️⃣ PARTE DEL PASO B: Opacar si está bloqueada por otro o añadir borde punteado si la tienes tú */
+                      style={
+                        (modoCobroActivo && (!orden || esDeOtroMesero)) || estaBloqueadaPorOtro
+                          ? { opacity: 0.3, cursor: 'not-allowed' } 
+                          : mesa.estado === 'ordenando' ? { border: '2px dashed #f59e0b' } : {}
+                      }
                     >
                       {/* Cuerpo de la Tarjeta (Icono, Nombre, Capacidad) */}
                       <div className={styles['mesa-body']}>
-                        <span style={{ fontSize: 36 }}>🪑</span>
+                        {/* 3️⃣ PARTE DEL PASO B: Emoji dinámico (Candado si está bloqueada) */}
+                        <span style={{ fontSize: 36 }}>{estaBloqueadaPorOtro ? '🔒' : '🪑'}</span>
                         <span className={styles['mesa-nombre']}>{mesa.nombre}</span>
                         <span className={styles['mesa-capacidad']}>Cap: {mesa.capacidad || 4}</span>
                         
@@ -300,8 +330,9 @@ export default function Mesero() {
                       </div>
 
                       {/* Bloque de Estado Inferior */}
-                      <div className={styles['mesa-estado-block']}>
-                        {modoCobroActivo && orden && !esDeOtroMesero ? 'COBRAR AQUÍ' : mesa.estado}
+                      {/* 3️⃣ PARTE DEL PASO B: Texto de aviso de bloqueo y fondo naranja si está en proceso */}
+                      <div className={styles['mesa-estado-block']} style={mesa.estado === 'ordenando' ? { backgroundColor: '#f59e0b', color: '#fff' } : {}}>
+                        {estaBloqueadaPorOtro ? 'OCUPADA (TOMANDO ORDEN)' : modoCobroActivo && orden && !esDeOtroMesero ? 'COBRAR AQUÍ' : mesa.estado}
                       </div>
                     </div>
                   )
@@ -385,7 +416,21 @@ export default function Mesero() {
             
             <div className={styles['modal-orden-header']}>
               <h2 style={{ color: '#4a3b32', fontWeight: 600, margin: 0 }}>Nueva orden — {mesaSeleccionada.nombre}</h2>
-              <button onClick={() => setModalOrden(false)} className={styles['btn-cerrar-fino']}>✕</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    // Quitamos el candado temporal 'ordenando' en el backend
+                    await api.post(`/mesas/${mesaSeleccionada.id}/desbloquear`);
+                  } catch (e) { 
+                    console.log("Error al desbloquear mesa:", e); 
+                  }
+                  setModalOrden(false);
+                  setMesaSeleccionada(null);
+                }} 
+                className={styles['btn-cerrar-fino']}
+              >
+                ✕
+              </button>
             </div>
 
             <div className={styles['modal-orden-grid']} style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, height: '65vh' }}>
