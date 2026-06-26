@@ -106,6 +106,7 @@ async def bloquear_mesa(mesa_id: int, body: dict, db: Session = Depends(get_db))
         
     mesero_id = body.get("mesero_id")
     mesa.estado = "ordenando"
+    mesa.bloqueada_por = mesero_id
     db.commit()
     
     # Avisar a todos los meseros en tiempo real
@@ -131,6 +132,7 @@ async def desbloquear_mesa(mesa_id: int, db: Session = Depends(get_db)):
     # Solo revertimos si estaba en proceso de orden
     if mesa.estado == "ordenando":
         mesa.estado = "disponible"
+        mesa.bloqueada_por = None
         db.commit()
         
         await manager.broadcast_all({

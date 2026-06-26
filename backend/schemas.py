@@ -29,11 +29,13 @@ class MesaUpdate(BaseModel):
     nombre: Optional[str] = None
     capacidad: Optional[int] = None
     estado: Optional[str] = None
+    bloqueada_por: Optional[int] = None
 
 
 class MesaOut(MesaBase):
     id: int
     estado: str
+    bloqueada_por: Optional[int] = None # 🟢 Esto permite que viaje al frontend
 
     class Config:
         from_attributes = True
