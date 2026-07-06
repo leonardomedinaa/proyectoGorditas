@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api, createWS } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -8,13 +8,20 @@ import styles from '../styles/mesero.module.css'
 import { ShoppingCart, Search, Filter } from 'lucide-react'
 
 const ESTACIONES = ['gorditas', 'menudo', 'antojitos']
-const COLORES_ESTACION = { gorditas: '#f59e0b', menudo: '#3b82f6', antojitos: '#22c55e' }
+const COLORES_ESTACION = { 
+  gorditas: 'var(--station-gorditas)', 
+  menudo: 'var(--station-menudo)', 
+  antojitos: 'var(--station-antojitos)' 
+}
 
 export default function Mesero() {
   const { user } = useAuth()
   const toast = useToast()
 
+  const ordenesRef = useRef([])
+
   const [tab, setTab] = useState('mesas')
+
   const [mesas, setMesas] = useState([])
   const [productos, setProductos] = useState([])
   const [ordenes, setOrdenes] = useState([])
@@ -55,6 +62,10 @@ export default function Mesero() {
       toast('Error al cargar datos', 'error')
     }
   }, [])
+  
+  useEffect(() => {
+    ordenesRef.current = ordenes
+  }, [ordenes])
 
   useEffect(() => {
     cargarDatos()
@@ -71,14 +82,19 @@ export default function Mesero() {
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
       if (msg.tipo === 'item_listo') {
+        const miOrden = ordenesRef.current.find(o => o.id === msg.orden_id);
+        const esMiOrden = miOrden && Number(miOrden.mesero_id) === Number(user.id);
+
         const identificadorMesa = msg.mesa 
           ? (msg.mesa.toString().toLowerCase().includes('mesa') ? msg.mesa : `Mesa ${msg.mesa}`) 
           : 'Mesa ?';
-
-        if (msg.estado_cocina === 'listo') {
-          toast(`¡Listo para entregar! ${identificadorMesa} — ${msg.producto} listo`, 'success')
-        } else if (msg.estado_cocina === 'preparando') {
-          toast(`En preparación: ${identificadorMesa} — ${msg.producto}`, 'info')
+          
+        if(esMiOrden){
+          if (msg.estado_cocina === 'listo') {
+            toast(`¡Listo para entregar! ${identificadorMesa} — ${msg.producto} listo`, 'success')
+          } else if (msg.estado_cocina === 'preparando') {
+            toast(`En preparación: ${identificadorMesa} — ${msg.producto}`, 'info')
+          }
         }
         
         setOrdenes(prev => prev.map(o => {
@@ -213,7 +229,7 @@ export default function Mesero() {
       <Topbar tab={tab} setTab={setTab} tabs={tabs} />
       <div className={styles.content}>
 
-{/* ── TAB MESAS ── */}
+        {/* ── TAB MESAS ── */}
         {tab === 'mesas' && (
           <div className={styles['main-container']}>
             <div className={styles['mapa-header']}>
@@ -227,7 +243,7 @@ export default function Mesero() {
                   
                   {/* ✨ NUEVA LEYENDA AGREGADA AQUÍ: */}
                   <div className={styles['leyenda-item']}>
-                    <span className={`${styles.dot}`} style={{ backgroundColor: '#f59e0b' }}></span> Ordenando...
+                    <span className={`${styles.dot}`} style={{ backgroundColor: 'var(--color-ordenando)' }}></span> Ordenando...
                   </div>
 
                   <div className={styles['leyenda-item']}>
@@ -254,15 +270,21 @@ export default function Mesero() {
                   const orden = ordenDeMesa(mesa)
                   const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
                   
-                  // 1️⃣ PARTE DEL PASO B: Declarar constante de bloqueo en tiempo real
+                  // PARTE DEL PASO B: Declarar constante de bloqueo en tiempo real
                   const estaBloqueadaPorOtro = mesa.estado === 'ordenando' && mesa.bloqueada_por && Number(mesa.bloqueada_por) !== Number(user.id);
-                  
+                  const claseEstado = styles[mesa.estado] || styles.disponible;
+
                   return (
                     <div
                       key={mesa.id}
-                      className={`${styles['mesa-card']} ${styles[mesa.estado]} ${modoCobroActivo && orden && !esDeOtroMesero ? styles['mesa-cobro-pendiente'] : ''}`}
+                      className={`
+                        ${styles['mesa-card']} 
+                        ${claseEstado} 
+                        ${modoCobroActivo && orden && !esDeOtroMesero ? styles['mesa-cobro-pendiente'] : ''}
+                        ${(modoCobroActivo && (!orden || esDeOtroMesero)) || estaBloqueadaPorOtro ? styles['mesa-deshabilitada'] : ''}
+                      `}
                       onClick={async () => {
-                        // 2️⃣ PARTE DEL PASO B: Freno si la tiene otro compañero
+                        // PARTE DEL PASO B: Freno si la tiene otro compañero
                         if (estaBloqueadaPorOtro) {
                           toast('Otro mesero está tomando la orden en este momento ⏳', 'info');
                           return;
@@ -287,7 +309,7 @@ export default function Mesero() {
                             toast('Esta mesa no tiene cuentas activas por cobrar', 'warning');
                           }
                         } else {
-                          // 2️⃣ PARTE DEL PASO B: Si está disponible, la bloqueamos proactivamente antes de abrir el modal
+                          // PARTE DEL PASO B: Si está disponible, la bloqueamos proactivamente antes de abrir el modal
                           if (mesa.estado === 'disponible') {
                             try {
                               await api.post(`/mesas/${mesa.id}/bloquear`, { mesero_id: user.id });
@@ -303,26 +325,20 @@ export default function Mesero() {
                           setModalOrden(true)
                         }
                       }}
-                      /* 3️⃣ PARTE DEL PASO B: Opacar si está bloqueada por otro o añadir borde punteado si la tienes tú */
-                      style={
-                        (modoCobroActivo && (!orden || esDeOtroMesero)) || estaBloqueadaPorOtro
-                          ? { opacity: 0.3, cursor: 'not-allowed' } 
-                          : mesa.estado === 'ordenando' ? { border: '2px dashed #f59e0b' } : {}
-                      }
                     >
                       {/* Cuerpo de la Tarjeta (Icono, Nombre, Capacidad) */}
                       <div className={styles['mesa-body']}>
-                        {/* 3️⃣ PARTE DEL PASO B: Emoji dinámico (Candado si está bloqueada) */}
-                        <span style={{ fontSize: 36 }}>{estaBloqueadaPorOtro ? '🔒' : '🪑'}</span>
+                        {/* 3️⃣ PARTE DEL PASO B: Emoji dinámico con clase limpia */}
+                        <span className={styles['mesa-icon']}>{estaBloqueadaPorOtro ? '🔒' : '🪑'}</span>
                         <span className={styles['mesa-nombre']}>{mesa.nombre}</span>
                         <span className={styles['mesa-capacidad']}>Cap: {mesa.capacidad || 4}</span>
                         
                         {orden && (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 4, gap: 2 }}>
-                            <span style={{ fontSize: 11, color: '#8a7665', fontWeight: 500 }}>
-                              {orden.items.length} items
+                          <div className={styles['mesa-orden-info']}>
+                            <span className={styles['mesa-orden-items']}>
+                              {orden.items.length} {orden.items.length === 1 ? 'Item' : 'Items'}
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#be5a1c' }}>
+                            <span className={styles['mesa-orden-total']}>
                               ${orden.total.toFixed(2)}
                             </span>
                           </div>
@@ -331,7 +347,9 @@ export default function Mesero() {
 
                       {/* Bloque de Estado Inferior */}
                       {/* 3️⃣ PARTE DEL PASO B: Texto de aviso de bloqueo y fondo naranja si está en proceso */}
-                      <div className={styles['mesa-estado-block']} style={mesa.estado === 'ordenando' ? { backgroundColor: '#f59e0b', color: '#fff' } : {}}>
+                      <div 
+                        className={`${styles['mesa-estado-block']} ${mesa.estado === 'ordenando' ? styles['mesa-estado-ordenando'] : ''}`}
+                      >
                         {estaBloqueadaPorOtro ? 'OCUPADA (TOMANDO ORDEN)' : modoCobroActivo && orden && !esDeOtroMesero ? 'COBRAR AQUÍ' : mesa.estado}
                       </div>
                     </div>
@@ -345,31 +363,29 @@ export default function Mesero() {
         {/* ── TAB ORDENES ── */}
         {tab === 'ordenes' && (
           <div className={`${styles['main-container']} ${styles['contenedor-ordenes']}`}>
-            <h2 style={{ marginBottom: 16, color: '#4a3b32', fontWeight: 600 }}>Mis Órdenes Activas</h2>
+            <h2 style={{ marginBottom: '16px', color: 'var(--text-main)', fontWeight: 600 }}>Mis Órdenes Activas</h2>
             
             <div className={styles['ordenes-scroll-wrapper']}>
               {ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).length === 0
-                ? <p style={{ color: '#8a7665' }}>No tienes órdenes activas.</p>
+                ? <p style={{ color: 'var(--text-secondary)' }}>No tienes órdenes activas.</p>
                 : ordenes.filter(o => Number(o.mesero_id) === Number(user.id)).map(orden => (
-                  <div key={orden.id} className={styles.card} style={{ marginBottom: 12, background: '#f7f1e5', border: '1px solid #e1d3bc' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div key={orden.id} className={styles.card} style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <div>
-                        <strong style={{ color: '#4a3b32', fontSize: 16 }}>{orden.mesa_nombre}</strong>
-                        <span style={{ color: '#8a7665', marginLeft: 8, fontSize: 12 }}>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '16px' }}>{orden.mesa_nombre}</strong>
+                        <span style={{ color: 'var(--text-secondary)', marginLeft: '8px', fontSize: '12px' }}>
                           Orden #{orden.id} · {new Date(orden.creado_en.endsWith('Z') ? orden.creado_en : `${orden.creado_en}Z`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <strong style={{ color: '#be5a1c', fontSize: 16 }}>${orden.total.toFixed(2)}</strong>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <strong style={{ color: 'var(--color-primary)', fontSize: '16px' }}>${orden.total.toFixed(2)}</strong>
                         <button 
                           className={`${styles.btn} ${styles['btn-primary']} btn-sm`} 
                           onClick={() => {
-
                             if(!verificarTodoListo(orden)){
-                              toast('Cocina auú no termina el pedido', 'warning')
+                              toast('Cocina aún no termina el pedido', 'warning')
                               return
                             }
-
                             abrirPago(orden)
                           }}
                         >
@@ -381,21 +397,21 @@ export default function Mesero() {
                     {[...orden.items]
                       .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
                       .map(item => (
-                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, padding: '4px 0' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                            <span style={{ color: '#be5a1c', fontWeight: 'bold', fontSize: 14 }}>{item.cantidad}x</span>
-                            <span style={{ color: '#4a3b32', fontSize: 14 }}>{item.producto_nombre}</span>
+                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', padding: '4px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                            <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '14px' }}>{item.cantidad}x</span>
+                            <span style={{ color: 'var(--text-main)', fontSize: '14px' }}>{item.producto_nombre}</span>
                             {item.comensal && (
-                              <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 11, padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+                              <span className={styles['badge-blue']}>
                                 C{item.comensal}
                               </span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span className={`badge ${item.estado_cocina === 'listo' ? styles['badge-green'] : item.estado_cocina === 'preparando' ? styles['badge-amber'] : styles['badge-gray']}`}>
                               {(item.estado_cocina || 'pendiente').toUpperCase()}
                             </span>
-                            <span style={{ color: '#4a3b32', fontSize: 14, fontWeight: 500 }}>
+                            <span style={{ color: 'var(--text-main)', fontSize: '14px', fontWeight: 500 }}>
                               ${((item.precio_unitario || 0) * item.cantidad).toFixed(2)}
                             </span>
                           </div>
@@ -411,15 +427,14 @@ export default function Mesero() {
 
       {/* ── MODAL NUEVA ORDEN ── */}
       {modalOrden && mesaSeleccionada && (
-        <div className={styles['modal-overlay']} style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(2px)' }}>
-          <div className={styles.modal} style={{ maxWidth: 800, width: '95vw', background: '#fffaf3', border: '1px solid #ebdcc5' }}>
+        <div className={styles['modal-overlay']} style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(2px)' }}>
+          <div className={styles.modal} style={{ maxWidth: '800px', width: '95vw', background: 'var(--bg-container)', border: '1px solid var(--border-light)' }}>
             
             <div className={styles['modal-orden-header']}>
-              <h2 style={{ color: '#4a3b32', fontWeight: 600, margin: 0 }}>Nueva orden — {mesaSeleccionada.nombre}</h2>
+              <h2 style={{ color: 'var(--text-main)', fontWeight: 600, margin: 0 }}>Nueva orden — {mesaSeleccionada.nombre}</h2>
               <button 
                 onClick={async () => {
                   try {
-                    // Quitamos el candado temporal 'ordenando' en el backend
                     await api.post(`/mesas/${mesaSeleccionada.id}/desbloquear`);
                   } catch (e) { 
                     console.log("Error al desbloquear mesa:", e); 
@@ -433,10 +448,10 @@ export default function Mesero() {
               </button>
             </div>
 
-            <div className={styles['modal-orden-grid']} style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, height: '65vh' }}>
+            <div className={styles['modal-orden-grid']} style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', height: '65vh' }}>
               {/* Menu */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <span className={`${styles.chip} ${filtroEstacion === 'todos' ? styles.active : ''}`} onClick={() => setFiltroEstacion('todos')}>Todos</span>
                   {ESTACIONES.map(e => (
                     <span key={e} className={`${styles.chip} ${filtroEstacion === e ? styles.active : ''}`} onClick={() => setFiltroEstacion(e)}
@@ -445,20 +460,20 @@ export default function Mesero() {
                     </span>
                   ))}
                 </div>
-                <input placeholder="Buscar producto..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ border: '1px solid #e1d3bc', background: '#fff' }} />
-                <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignContent: 'start' }}>
+                <input placeholder="Buscar producto..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ border: '1px solid var(--border-neutral)', background: 'var(--text-light)' }} />
+                <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
                   {prodsFiltrados.map(prod => (
-                    <div key={prod.id} className={styles['prod-card']} onClick={() => clickProducto(prod)} style={{ background: '#f7f1e5', border: '1px solid #e1d3bc' }}>
+                    <div key={prod.id} className={styles['prod-card']} onClick={() => clickProducto(prod)} style={{ background: 'var(--bg-card-neutral)', border: '1px solid var(--border-neutral)' }}>
                       <div className={styles['prod-card-header']}>
-                        <span className={styles['prod-nombre']} style={{ color: '#4a3b32' }}>{prod.nombre}</span>
-                        <span className={styles['prod-precio']} style={{ color: '#be5a1c' }}>${prod.precio.toFixed(2)}</span>
+                        <span className={styles['prod-nombre']} style={{ color: 'var(--text-main)' }}>{prod.nombre}</span>
+                        <span className={styles['prod-precio']} style={{ color: 'var(--color-primary)' }}>${prod.precio.toFixed(2)}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span className={styles['prod-estacion']} style={{ color: COLORES_ESTACION[prod.estacion], fontSize: 12, fontWeight: 600 }}>
+                        <span className={styles['prod-estacion']} style={{ color: COLORES_ESTACION[prod.estacion], fontSize: '12px', fontWeight: 600 }}>
                           ● {prod.estacion}
                         </span>
                         {prod.stock <= prod.stock_minimo && (
-                          <span className={`badge ${styles['badge-red']}`} style={{ fontSize: 10 }}>Stock bajo</span>
+                          <span className={`badge ${styles['badge-red']}`} style={{ fontSize: '10px' }}>Stock bajo</span>
                         )}
                       </div>
                     </div>
@@ -467,20 +482,20 @@ export default function Mesero() {
               </div>
 
               {/* Carrito */}
-              <div style={{ display: 'flex', flexDirection: 'column', background: '#f7f1e5', border: '1px solid #e1d3bc', borderRadius: 10, padding: 14, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card-neutral)', border: '1px solid var(--border-neutral)', borderRadius: '10px', padding: '14px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: 16, color: '#4a3b32' }}>🛒 Carrito ({carrito.length})</strong>
+                    <strong style={{ fontSize: '16px', color: 'var(--text-main)' }}>🛒 Carrito ({carrito.length})</strong>
                   </div>
                   <div className={styles['select-comensal-container']}>
-                    <span style={{ fontSize: 12, color: '#8a7665', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                       Asignar productos a:
                     </span>
                     <select 
                       value={comensalActivo} 
                       onChange={e => setComensalActivo(Number(e.target.value))}
                       className={styles['select-comensal']}
-                      style={{ background: '#fff', border: '1px solid #e1d3bc' }}
+                      style={{ background: 'var(--text-light)', border: '1px solid var(--border-neutral)' }}
                     >
                       {Array.from({length: mesaSeleccionada?.capacidad || 4}, (_, index) => {
                         const numeroComensal = index + 1;
@@ -496,47 +511,47 @@ export default function Mesero() {
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {carrito.length === 0
-                    ? <p style={{ color: '#8a7665', fontSize: 13 }}>Agrega productos del menú</p>
+                    ? <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Agrega productos del menú</p>
                     : [...carrito]
                         .sort((a, b) => a.comensal - b.comensal)
                         .map(c => (
-                          <div key={c.key} className={styles['carrito-item']} style={{ borderLeft: '3px solid #be5a1c', paddingLeft: 8, flexDirection: 'column', alignItems: 'stretch', gap: 6, borderBottom: '1px solid #e1d3bc', paddingBottom: 8, marginBottom: 4 }}>
+                          <div key={c.key} className={styles['carrito-item']} style={{ borderLeft: '3px solid var(--color-primary)', paddingLeft: '8px', flexDirection: 'column', alignItems: 'stretch', gap: '6px', borderBottom: '1px solid var(--border-neutral)', paddingBottom: '8px', marginBottom: '4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span className={`badge ${styles['badge-blue']}`} style={{ fontSize: 10, padding: '2px 6px', fontWeight: 600 }}>
+                              <span className={`badge ${styles['badge-blue']}`} style={{ fontSize: '10px', padding: '2px 6px', fontWeight: 600 }}>
                                 👤 Comensal {c.comensal}
                               </span>
-                              <span className={styles['ci-precio']} style={{ color: '#be5a1c', fontWeight: 600 }}>${(c.precio * c.cantidad).toFixed(2)}</span>
+                              <span className={styles['ci-precio']} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>${(c.precio * c.checkpoint || c.precio * c.amount || c.precio * c.cantidad).toFixed(2)}</span>
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <div className={styles['ci-info']} style={{ flex: 1, marginRight: 8 }}>
-                                <div className={styles['ci-nombre']} style={{ color: '#4a3b32', fontWeight: 600 }}>{c.producto.nombre}</div>
-                                {c.modificador && <div className={styles['ci-mod']} style={{ color: '#8b5cf6', fontSize: 11 }}>{c.modificador.nombre}</div>}
+                              <div className={styles['ci-info']} style={{ flex: 1, marginRight: '8px' }}>
+                                <div className={styles['ci-nombre']} style={{ color: 'var(--text-main)', fontWeight: 600 }}>{c.producto.nombre}</div>
+                                {c.modificador && <div className={styles['ci-mod']} style={{ color: 'var(--text-badge-blue)', fontSize: '11px' }}>{c.modificador.nombre}</div>}
                                 <input
                                   placeholder="Comentario..."
                                   value={c.comentario}
                                   onChange={e => setCarrito(prev => prev.map(x => x.key === c.key ? { ...x, comentario: e.target.value } : x))}
-                                  style={{ marginTop: 4, fontSize: 11, padding: '3px 6px', width: '100%', border: '1px solid #e1d3bc', background: '#fff' }}
+                                  style={{ marginTop: '4px', fontSize: '11px', padding: '3px 6px', width: '100%', border: '1px solid var(--border-neutral)', background: 'var(--text-light)' }}
                                 />
                               </div>
 
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                                <div className={styles['qty-ctrl']} style={{ background: '#fff', border: '1px solid #e1d3bc' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                                <div className={styles['qty-ctrl']} style={{ background: 'var(--text-light)', border: '1px solid var(--border-neutral)' }}>
                                   <button className={styles['qty-btn']} onClick={() => cambiarCantidad(c.key, -1)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>−</button>
-                                  <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13, color: '#4a3b32', fontWeight: 600 }}>{c.cantidad}</span>
+                                  <span style={{ minWidth: '20px', textAlign: 'center', fontSize: '13px', color: 'var(--text-main)', fontWeight: 600 }}>{c.cantidad}</span>
                                   <button className={styles['qty-btn']} onClick={() => cambiarCantidad(c.key, 1)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>+</button>
                                 </div>
-                                <button onClick={() => quitarItem(c.key)} className={styles['btn-quitar']}>✕ quitar</button>
+                                <button onClick={() => quitarItem(c.key)} className={styles['btn-quitar']}>✕ Quitar</button>
                               </div>
                             </div>
                           </div>
                         ))
                   }
                 </div>
-                <div className={styles.sep} style={{ backgroundColor: '#e1d3bc' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <strong style={{ color: '#4a3b32' }}>Total</strong>
-                  <strong style={{ color: '#be5a1c', fontSize: 18 }}>${totalCarrito.toFixed(2)}</strong>
+                <div className={styles.sep} style={{ backgroundColor: 'var(--border-neutral)' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--text-main)' }}>Total</strong>
+                  <strong style={{ color: 'var(--color-primary)', fontSize: '18px' }}>${totalCarrito.toFixed(2)}</strong>
                 </div>
                 <button className={`${styles.btn} ${styles['btn-primary']}`} 
                 disabled={carrito.length === 0} 
@@ -559,13 +574,13 @@ export default function Mesero() {
             
             {/* Encabezado del modal */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ color: '#4a3b32', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
+              <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
                 Opciones — {prodPendiente.nombre}
               </h2>
               <button onClick={() => setProdPendiente(null)} className={styles['btn-cerrar-fino']}>✕</button>
             </div>
 
-            <p style={{ color: '#8a7665', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', padding: '10px 0', width: '100%' }}>
               <button className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente); setProdPendiente(null) }}>
@@ -588,9 +603,9 @@ export default function Mesero() {
               })}
             </div>
             
-            <div className={styles.sep} style={{ backgroundColor: '#e1d3bc' }} />
+            <div className={styles.sep} style={{ backgroundColor: 'var(--border-neutral)' }} />
             
-            <p style={{ color: '#8a7665', fontSize: 13, marginBottom: 8 }}>Extras globales:</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 8 }}>Extras globales:</p>
             {productos.length > 0 && (() => {
               const extraQueso = prodPendiente.modificadores?.find(m => m.global_mod)
               if (!extraQueso) return null
@@ -669,9 +684,9 @@ export default function Mesero() {
                 <strong>${modalPago.total.toFixed(2)}</strong>
               </div>
 
-              <div className={styles.sep} style={{ backgroundColor: '#e1d3bc', margin: '1.5rem 0' }} />
+              <div className={styles.sep} style={{ backgroundColor: 'var(--border-neutral)', margin: '1.5rem 0' }} />
               
-              <strong style={{ display: 'block', marginBottom: 12, color: '#4a3b32', fontSize: '1.05rem' }}>
+              <strong style={{ display: 'block', marginBottom: 12, color: 'var(--text-main:)', fontSize: '1.05rem' }}>
                 Métodos de pago
               </strong>
               
@@ -680,7 +695,7 @@ export default function Mesero() {
                   <select 
                     value={p.metodo} 
                     onChange={e => setPagos(prev => prev.map((x, j) => j === i ? { ...x, metodo: e.target.value } : x))} 
-                    style={{ flex: 1, border: '1px solid #e1d3bc', background: '#fff' }}
+                    style={{ flex: 1, border: '1px solid var(--border-neutral)', background: '#fff' }}
                   >
                     <option value="efectivo">Efectivo</option>
                     <option value="transferencia">Transferencia</option>
@@ -692,7 +707,7 @@ export default function Mesero() {
                     placeholder="Monto" 
                     value={p.monto}
                     onChange={e => setPagos(prev => prev.map((x, j) => j === i ? { ...x, monto: e.target.value } : x))}
-                    style={{ width: 110, border: '1px solid #e1d3bc', background: '#fff' }} 
+                    style={{ width: 110, border: '1px solid var(--border-neutral)', background: '#fff' }} 
                   />
                   
                   {pagos.length > 1 && (
