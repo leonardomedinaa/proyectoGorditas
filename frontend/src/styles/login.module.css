@@ -1,3 +1,28 @@
+:root {
+    /* Fondos (Backgrounds) */
+    --bg-pantalla: #fbead6;
+    --bg-input: #ffffff;
+    --bg-error: #ffebee;
+
+    /* Colores de Marca y Acciones (Brand & Buttons) */
+    --brand-primary: #b05323;
+    --brand-primary-hover: #944219;
+    --brand-primary-alpha: rgba(176, 83, 35, 0.1);
+
+    /* Textos (Typography) */
+    --text-main: #333333;
+    --text-title: #3b240e;
+    --text-placeholder: #a6988a;
+    --text-icon: #8c8276;
+    --text-button: #ffffff;
+
+    /* Bordes y Líneas (Borders & Dividers) */
+    --border-light: #dfcfbe;
+    --border-medium: #dcc6b1;
+}
+
+/* Agrega aquí el bloque :root si es exclusivo de este módulo */
+
 .pantalla-dividida {
     width: 100%;
     height: 100vh;
@@ -16,7 +41,7 @@
 .columna-derecha {
     width: 50%;
     height: 100%;
-    background-color: #fbead6; 
+    background-color: var(--bg-pantalla); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -43,7 +68,7 @@
 .linea-decorativa {
     width: 100%;
     border: none;
-    border-top: 2px solid #dfcfbe; 
+    border-top: 2px solid var(--border-light); 
     margin-bottom: 1.5rem;
 }
 
@@ -55,7 +80,7 @@
     font-size: clamp(1.6rem, 3vw, 2.1rem);
     font-family: "Anek Malayalam", sans-serif;
     font-weight: 600;
-    color: #3b240e;
+    color: var(--text-title);
     margin-bottom: 2rem;
     text-align: center;
     width: 100%;
@@ -71,23 +96,23 @@
     width: 100%;
     padding: 1.1rem 1.3rem;
     padding-right: 48px;
-    border: 1px solid #dcc6b1;
+    border: 1px solid var(--border-medium);
     border-radius: 8px;
     font-family: "Anek Malayalam", sans-serif;
     font-size: 1.05rem;
-    color: #333;
-    background-color: #ffffff;
+    color: var(--text-main);
+    background-color: var(--bg-input);
     transition: all 0.2s ease;
 }
 
 .input:focus {
     outline: none;
-    border-color: #b05323;
-    box-shadow: 0 0 0 3px rgba(176, 83, 35, 0.1);
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px var(--brand-primary-alpha);
 }
 
 .input::placeholder {
-    color: #a6988a;
+    color: var(--text-placeholder);
 }
 
 .icon {
@@ -97,7 +122,7 @@
     transform: translateY(-50%);
     cursor: pointer;
     user-select: none;
-    color: #8c8276;
+    color: var(--text-icon);
     font-size: 1.4rem;
 }
 
@@ -111,8 +136,8 @@
 .btn-staff {
     width: 100%; 
     padding: 1.1rem;
-    background-color: #b05323; 
-    color: white;
+    background-color: var(--brand-primary); 
+    color: var(--text-button);
     border: none;
     border-radius: 8px;
     font-size: 1.1rem;
@@ -123,12 +148,27 @@
 }
 
 .btn-staff:hover {
-    background-color: #944219;
+    background-color: var(--brand-primary-hover);
 }
 
 .input:disabled, .btn-staff:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.alerta-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-title);
+    background-color: var(--bg-error);
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border: 1px solid var(--border-medium);
 }
 
 @media (max-width: 992px) {
@@ -160,7 +200,7 @@
     }
 
     .bloque-login {
-        background-color: #fbead6;
+        background-color: var(--bg-pantalla);
         padding: 3rem 2rem;
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
@@ -181,7 +221,7 @@
         position: relative;
         width: 100%;
         height: 100%;
-        background-color: #fbead6;
+        background-color: var(--bg-pantalla);
         padding: 1.5rem;
     }
 
