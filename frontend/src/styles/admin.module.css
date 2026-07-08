@@ -354,24 +354,24 @@
 /* ───────────────────────────────────────── */
 
 .auditCard {
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: 1.25rem;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  width:100%;
-  box-shadow: var(--shadow-sm);
+  justify-content: center;
+  text-align: center;
+  gap: 1.25rem;
 }
 
 .auditInfoGroup {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .auditIconWrap {
