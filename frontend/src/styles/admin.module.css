@@ -427,3 +427,442 @@
   background-color: rgba(239, 68, 68, 0.1);
   color: #b91c1c;
 }
+
+/* ───────────────────────────────────────── */
+/* TABLAS                     */
+/* ───────────────────────────────────────── */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-bottom: 2px solid #f3f0ed;
+}
+
+.sectionTitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #2c2520;
+  margin: 0;
+}
+.btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background-color: #be5a24;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #a34b1c;
+  transform: translateY(-1px);
+}
+
+.table-wrap{
+  background: #eec793;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02);
+  border: 1px solid #f3cc8c;
+  overflow:hidden;
+}
+.table-wrap table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table-wrap th,
+.table-wrap td{
+  padding: 1.1rem 1.5rem;
+  vertical-align: middle;
+}
+.table-wrap th:nth-child(1),
+.table-wrap td:nth-child(1){
+  text-align: left;
+}
+.table-wrap th:nth-child(2),
+.table-wrap td:nth-child(2){
+  text-align: center;
+}
+.table-wrap th:nth-child(3),
+.table-wrap td:nth-child(3){
+  text-align: center;
+}
+.table-wrap th:nth-child(4),
+.table-wrap td:nth-child(4){
+  text-align: center;
+}
+
+.table-wrap th{
+  background-color: #fcaf62;
+  color: #ca6812;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.75rem;
+  letter-spacing: 0.05rem;
+  border-bottom: 1px solid #e8e3db;
+}
+
+.table-wrap td{
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f7d99c;
+  color: #4a3e35;
+  vertical-align: middle;
+}
+
+.table-wrap tr:last-child td{
+  border-bottom: none;
+}
+
+.table-wrap tr:hover td{
+  background-color: #f3be89;
+}
+.tableThFont{
+  font-weight: 600;
+  color: #2c2520;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.badge-success {
+  background-color: #dcfce7 ;
+  color: #15803d;
+}
+.badge-warning {
+  background-color: #fda79b;
+  color: #b40f09;
+}
+.tableActionsGroup {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  align-items: center;
+}
+.tableActionsGroup button {
+  width: 48px ;
+  height: 48px ;
+  padding: 0 ;
+  display: inline-flex;
+  align-items: center ;
+  justify-content: center;
+  border-radius: 0.6rem ;
+  cursor: pointer ;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.tableActionsGroup button:not(.btnErrorText) {
+  background-color: #b0f086;
+  border: 1px solid #44704a;
+  color: #1c1f24;
+}
+.tableActionsGroup button:not(.btnErrorText):hover {
+  background-color: #23642c;
+  border-color: #32684f;
+  color: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.tableActionsGroup button.btnErrorText {
+  background-color: #ec8e8e ;
+  border: 1px solid #cc4343;
+  color: #141010; 
+}
+.tableActionsGroup button.btnErrorText:hover {
+  background-color: #ac3333;
+  border-color: #971212;
+  color: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.15);
+}
+.tableActionsGroup button:active {
+  transform: translateY(0) ;
+  box-shadow: none;
+}
+
+/* ───────────────────────────────────────── */
+/* FORMULARIOS                   */
+/* ───────────────────────────────────────── */
+/*.form-field {
+  display: flex;
+  flex-direction: column ;
+  gap: 0.5rem ;
+  width: 100% ;
+  margin-bottom: 0;
+  text-align: left ;
+}
+.form-field label {
+  font-size: 0.9rem ;
+  font-weight: 600;
+  color: #4a3e35;
+  margin: 0;
+}
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #be5a24; 
+  box-shadow: 0 0 0 3px rgba(190, 90, 36, 0.18);
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  width: 100% ;
+}
+.modalHelpText {
+  font-size: 0.875rem ;
+  color: #64748b ;
+  margin-bottom: 1.25rem;
+  line-height: 1.4 ;
+  text-align: left ;
+}
+.pageContainer > *:has(.form-field) {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999; 
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  width: 90% ;
+  max-width: 460px; 
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  border: 1px solid #e8e3db;
+  box-sizing: border-box;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              0 0 0 100vmax rgba(42, 35, 30, 0.45); 
+  animation: modalPopUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalPopUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -43%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.pageContainer > *:has(.form-field) h2,
+.pageContainer > *:has(.form-field) h3,
+.pageContainer > *:has(.form-field) strong {
+  display: block;
+  width: 100%;
+  font-size: 1.4rem;
+  color: #2e2520 ; 
+  font-weight: 700;
+  margin-top: 0 ;
+  margin: 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+}
+.pageContainer > *:has(.form-field) > div:not(:last-child):not(:first-child) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+.pageContainer > *:has(.form-field) button:not(.btn) {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.pageContainer > *:has(.form-field) button:not(.btn):hover {
+  background: #f1f5f9;
+  color: #be5a24; 
+}
+
+.pageContainer > *:has(.form-field) > div:last-child,
+.pageContainer > *:has(.form-field) footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;  
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+*/
+/* ════════════════════════════════════════════════════════════════════
+   REDISEÑO DE MODALES DEFINTIVO (CORRECCIÓN DE BOTÓN X Y ALINEACIÓN)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Tarjeta contenedora principal del Modal */
+div:has(> .form-field),
+div:has(> .grid-2) {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 99999 !important;
+  
+  /* Usamos Grid de 1 columna: obliga a los elementos a ir uno abajo del otro */
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 1.25rem !important;
+  
+  width: 90% !important;
+  max-width: 440px !important;
+  background: #ffffff !important;
+  border-radius: 1.25rem !important;
+  padding: 2rem !important;
+  border: 1px solid #e2e8f0 !important;
+  box-sizing: border-box !important;
+  
+  /* Fondo oscuro difuminado detrás del modal */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              0 0 0 100vmax rgba(42, 35, 30, 0.5) !important;
+  
+  animation: modalPopUp 0.2s ease-out forwards !important;
+}
+
+/* AISLAMIENTO DEL BOTÓN DE CERRAR (X) 
+   Lo sacamos del flujo para que flote arriba a la derecha sin romper el diseño */
+div:has(> .form-field) > button:not([class*="btn"]) {
+  position: absolute !important;
+  top: 1.25rem !important;
+  right: 1.25rem !important;
+  margin: 0 !important;
+  background: #f1f5f9 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  transition: background 0.2s !important;
+}
+
+div:has(> .form-field) > button:not([class*="btn"]):hover {
+  background: #e2e8f0 !important;
+}
+
+/* Estilo del Título del Formulario */
+div:has(> .form-field) > h2,
+div:has(> .form-field) > h3 {
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  color: #2e2520 !important; /* Tono café oscuro */
+  margin: 0 !important;
+  text-align: left !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Campos individuales del Formulario */
+.form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.4rem !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.form-field label {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: #5c4d42 !important;
+}
+
+.form-field input,
+.form-field select {
+  width: 100% !important;
+  padding: 0.75rem 1rem !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 0.6rem !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  font-size: 0.95rem !important;
+  box-sizing: border-box !important;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none !important;
+  border-color: #be5a24 !important; /* Enfoque terracota */
+  box-shadow: 0 0 0 3px rgba(190, 90, 36, 0.15) !important;
+}
+
+/* Contenedor del Footer (Botones Cancelar y Guardar)
+   Forzamos a que estos dos sí vayan de lado y alineados a la derecha */
+div:has(> .form-field) div:has(> .btn) {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  margin-top: 0.5rem !important;
+  padding-top: 1.25rem !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+/* Soporte para inputs en doble columna (Productos) */
+.grid-2 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+/* Animación de aparición */
+@keyframes modalPopUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -47%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
