@@ -666,8 +666,6 @@
   animation: modalPopUp 0.2s ease-out forwards;
 }
 
-/* AISLAMIENTO DEL BOTÓN DE CERRAR (X) 
-   Lo sacamos del flujo para que flote arriba a la derecha sin romper el diseño */
 div:has(> .form-field) > button:not([class*="btn"]) {
   position: absolute;
   top: 1.25rem;
@@ -767,12 +765,6 @@ div:has(> .form-field) div:has(> .btn) {
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   CORRECCIÓN ESTRUCTURAL DE MODALES (PROTECCIÓN TOTAL DE LA TABLA)
-   ════════════════════════════════════════════════════════════════════ */
-
-/* 1. VENTANA EMERGENTE DE EDICIÓN 
-   (Solo aplica a bloques principales con campos de formulario) */
 .pageContainer > div:has(.form-field) {
   position: fixed;
   top: 50%;
@@ -798,9 +790,6 @@ div:has(> .form-field) div:has(> .btn) {
   
   animation: modalPopUp 0.2s ease-out forwards;
 }
-
-/* 2. VENTANA EMERGENTE DE ELIMINACIÓN 
-   (El uso de ">" evita estrictamente que afecte a los botones de las filas) */
 .pageContainer > div:has(> button):not(:has(.form-field)) {
   position: fixed;
   top: 50%;
@@ -827,10 +816,6 @@ div:has(> .form-field) div:has(> .btn) {
   animation: modalPopUp 0.2s ease-out forwards;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   MODAL DE ELIMINACIÓN PREMIUM (ESTILO IDENTICO A EDITAR MESA)
-   ════════════════════════════════════════════════════════════════════ */
-
 .modalDeleteContainer {
   position: fixed;
   top: 50%;
@@ -843,14 +828,12 @@ div:has(> .form-field) div:has(> .btn) {
   gap: 1.5rem;
   
   width: 90%;
-  max-width: 440px; /* Mismo ancho exacto que el de Editar */
+  max-width: 440px;
   background: #ffffff;
   border-radius: 1.25rem;
   padding: 2rem;
   border: 1px solid #e2e8f0;
   box-sizing: border-box;
-  
-  /* Sombra elegante con fondo atenuado */
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
               0 10px 10px -5px rgba(0, 0, 0, 0.04),
               0 0 0 100vmax rgba(42, 35, 30, 0.4);
@@ -858,7 +841,7 @@ div:has(> .form-field) div:has(> .btn) {
   animation: modalPopUp 0.2s ease-out forwards;
 }
 
-/* El botón 'X' cuadrado y alineado a la derecha (Igual al de Editar) */
+
 .closeModalBtn {
   position: absolute;
   top: 2rem;
@@ -885,17 +868,15 @@ div:has(> .form-field) div:has(> .btn) {
   border-color: #94a3b8;
 }
 
-/* Título Principal */
 .modalDeleteContainer h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0f172a; /* Mismo tono oscuro e imponente */
+  color: #0f172a; 
   margin: 0;
   text-align: left;
-  padding-right: 2.5rem; /* Evita que el texto choque con la X */
+  padding-right: 2.5rem; 
 }
 
-/* Cuerpo de texto con aire y legibilidad */
 .modalDeleteBody {
   text-align: left;
   display: flex;
@@ -910,14 +891,13 @@ div:has(> .form-field) div:has(> .btn) {
   line-height: 1.5;
 }
 
-/* Texto de advertencia sutil */
+
 .warningText {
   font-size: 0.9rem;
   color: #64748b;
   font-weight: 400;
 }
 
-/* Contenedor de Botones Inferiores */
 .modalDeleteActions {
   display: flex;
   flex-direction: row;
@@ -928,7 +908,6 @@ div:has(> .form-field) div:has(> .btn) {
   margin-top: 0.5rem;
 }
 
-/* Estilo unificado de botones de acción */
 .modalDeleteActions button {
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
@@ -987,67 +966,56 @@ div:has(> .form-field) div:has(> .btn) {
 }
 
 .stockTextNormal {
-  background-color: #f0fdf4 !important; /* Un verde pastel muy limpio */
-  color: #166534 !important;            /* Texto verde oscuro */
+  background-color: #f0fdf4 !important; 
+  color: #166534 !important;           
   border: 1px solid #bbf7d0 !important;
 }
 
 .stockTextError {
-  background-color: #fee2e2 !important; /* Rojo pastel de advertencia */
-  color: #dc2626 !important;            /* Texto rojo oscuro */
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;            
   border: 1px solid #fecaca !important;
 }
 
-/* Asegura que el contenedor del formulario dentro del modal fluya verticalmente sin límites raros */
 .modalFormContainer {
   display: flex;
   flex-direction: column;
-  gap: 12px;                  /* Reducimos un poco el espacio */
+  gap: 12px;                  
   width: 100%;
   box-sizing: border-box;
-  max-height: 50vh;          /* Le ponemos un límite al formulario */
-  overflow-y: auto;          /* Forzamos scroll interno si es necesario */
-  padding-right: 4px;        /* Espacio para la barrita de scroll */
+  max-height: 50vh;          
+  overflow-y: auto;          
+  padding-right: 4px;       
 }
 
-/* Maneja las filas de 2 columnas de manera limpia y responsiva */
+
 .modalFormRow {
   display: flex;
   gap: 12px;
   width: 100%;
 }
 
-/* Hace que cada campo dentro de la fila ocupe exactamente la mitad del espacio disponible */
 .modalFormRow > div {
   flex: 1;
-  min-width: 0; /* Evita desbordamientos en inputs */
+  min-width: 0; 
 }
 
-/* El contenedor de la tarjeta blanca dentro de tu Modal */
 .modalCard {
   background: #ffffff;
   border-radius: 12px;
   width: 100%;
   max-width: 500px;
-  
-  /* 🌟 ESTO ES LO CLAVE 🌟 */
-  max-height: 90vh;          /* Evita que sea más alto que el 90% de la pantalla */
+  max-height: 90vh;          
   display: flex;
-  flex-direction: column;    /* Organiza el header, body y footer en fila */
+  flex-direction: column;    
 }
 
-/* El contenedor del contenido (donde caen los inputs) */
 .modalBody {
   padding: 20px;
-  overflow-y: auto;          /* Si el formulario es largo, activa scroll solo aquí */
-  flex: 1;                   /* Toma el espacio restante de forma fluida */
+  overflow-y: auto;          
+  flex: 1;                   
 }
 
-/* ───────────────────────────────────────── */
-/* SECCIÓN DE ÓRDENES ACTIVAS (GRID & CARDS)  */
-/* ───────────────────────────────────────── */
-
-/* Contenedor principal en cuadrícula responsiva */
 .ordenes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1057,7 +1025,6 @@ div:has(> .form-field) div:has(> .btn) {
   box-sizing: border-box;
 }
 
-/* La tarjeta contenedora de cada orden */
 .ordenCard {
   background: #ffffff;
   border: 1px solid #f7d99c;
@@ -1074,7 +1041,7 @@ div:has(> .form-field) div:has(> .btn) {
   box-shadow: 0 6px 12px -2px rgba(42, 35, 30, 0.1);
 }
 
-/* Encabezado de la tarjeta con el tono Ámbar de tus tablas */
+
 .ordenHeader {
   background-color: #fcaf62;
   padding: 1rem;
@@ -1110,7 +1077,6 @@ div:has(> .form-field) div:has(> .btn) {
   font-weight: 600;
 }
 
-/* Cuerpo de la tarjeta (Fondo crema sutil) */
 .ordenBody {
   padding: 1.25rem;
   flex: 1;
@@ -1120,7 +1086,6 @@ div:has(> .form-field) div:has(> .btn) {
   background-color: #fffaf3;
 }
 
-/* Cada fila de platillo pedido */
 .ordenItem {
   display: flex;
   align-items: flex-start;
@@ -1134,7 +1099,6 @@ div:has(> .form-field) div:has(> .btn) {
   padding-bottom: 0;
 }
 
-/* Cantidad multiplicadora destacada en Terracota */
 .ordenQty {
   font-weight: 700;
   color: #be5a24;
@@ -1209,12 +1173,12 @@ div:has(> .form-field) div:has(> .btn) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: #fff1f2; /* Rojo/rosa muy suave */
+  background-color: #fff1f2; 
   border: 1px solid #fecdd3;
   border-radius: 0.5rem;
   padding: 0.85rem 1.25rem;
   margin-bottom: 1.5rem;
-  color: #9f1239; /* Texto guinda/rojo oscuro para legibilidad */
+  color: #9f1239; 
   font-weight: 600;
   font-size: 0.95rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
