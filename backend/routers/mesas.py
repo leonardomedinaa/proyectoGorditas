@@ -23,7 +23,7 @@ def normalizar_cadena_extrema(texto: str) -> str:
 
 @router.get("/", response_model=List[MesaOut])
 def listar_mesas(db: Session = Depends(get_db)):
-    return db.query(Mesa).filter(Mesa.estado != "inactiva").all()
+    return db.query(Mesa).filter(Mesa.estado != "inactiva").order_by(Mesa.nombre).all()
 
 
 @router.post("/", response_model=MesaOut)
