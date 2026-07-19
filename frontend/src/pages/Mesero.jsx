@@ -271,7 +271,8 @@ export default function Mesero() {
             {/* Grid de Tarjetas */}
             <div className={styles['mesa-scroll-wrapper']}>
               <div className={styles['mesa-grid']}>
-                {mesas.map(mesa => {
+                {mesas.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }))
+                .map(mesa => {
                   const orden = ordenDeMesa(mesa)
                   const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
                   
