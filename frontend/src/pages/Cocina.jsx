@@ -6,18 +6,20 @@ import Topbar from '../components/Topbar'
 import styles from '../styles/cocina.module.css'
 import { Volume2, VolumeX, RefreshCw, CheckCircle } from 'lucide-react'
 
+// 1. MAPEADOR DE ESTACIONES SEGÚN LOS NOMBRES DE USUARIO CREADOS EN DATABASE.PY
 function estacionDeUsuario(nombre) {
+  if (!nombre) return null
   const n = nombre.toLowerCase()
   if (n.includes('gordita')) return 'gorditas'
   if (n.includes('menudo'))  return 'menudo'
-  if (n.includes('antojito')) return 'antojitos'
+  if (n.includes('birria'))  return 'birria'
   return null
 }
 
 export default function Cocina() {
   const { user } = useAuth() 
   const toast = useToast()
-  const estacion = estacionDeUsuario(user.nombre)
+  const estacion = estacionDeUsuario(user?.nombre)
 
   const [items, setItems] = useState([])
   const [sonido, setSonido] = useState(true)
@@ -40,7 +42,7 @@ export default function Cocina() {
       const data = await api.get(`/ordenes/cocina/${estacion}`)
       setItems(data)
     } catch { toast('Error al cargar comandas', 'error') }
-  }, [estacion])
+  }, [estacion, toast])
 
   useEffect(() => {
     cargar()
@@ -59,7 +61,7 @@ export default function Cocina() {
       unsub()
       clearInterval(intervalo)
     }
-  }, [cargar, estacion])
+  }, [cargar, estacion, toast])
 
   const cambiarEstado = async (ordenId, itemId, estado) => {
     try {
@@ -77,10 +79,11 @@ export default function Cocina() {
 
   const grupos = Object.values(porOrden)
 
+  // 2. TÍTULOS COINCIDENTES CON LAS ESTACIONES DE LA BASE DE DATOS
   const TITULO = {
     gorditas: '🫓 Estación Gorditas',
     menudo: '🍲 Estación Menudo',
-    antojitos: '🌮 Estación Antojitos',
+    birria: '🌮 Estación Birria y Antojitos',
   }
 
   const capitalizar = (texto) => {
@@ -109,7 +112,7 @@ export default function Cocina() {
           fontWeight: 700,
           whiteSpace: 'nowrap'
         }}>
-          {TITULO[estacion]}
+          {TITULO[estacion] || '🍳 Cocina'}
         </span>
         
         <div className={styles['topbar-controls-cocina']}>
