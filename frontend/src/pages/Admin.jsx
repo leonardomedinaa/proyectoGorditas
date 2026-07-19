@@ -5,9 +5,10 @@ import { useToast } from '../context/ToastContext'
 import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
 import style from '../styles/admin.module.css'
+import jsPDF from 'jspdf'
 import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
-  ArrowUpRight, LayoutDashboard
+  ArrowUpRight, Lock as LockIcon
  } from 'lucide-react'
 
 const TABS = [
@@ -37,29 +38,22 @@ export default function Admin() {
   const [formMesa, setFormMesa] = useState({ nombre: '', capacidad: 4 })
   const [formProd, setFormProd] = useState({ nombre: '', precio: '', estacion: 'gorditas', stock: 100, stock_minimo: 20 })
   const [ajusteStock, setAjusteStock] = useState({ delta: '', motivo: 'ingreso' })
-
+  const [mesaAEliminar, setMesaAEliminar] = useState(null);
   const cargarTodo = useCallback(async () => {
     try {
-      const [m, p, o, a] = await Promise.all([
+      const [m, p, o, a,r] = await Promise.all([
         api.get('/mesas/'),
         api.get('/productos/todos'),
         api.get('/ordenes/'),
         api.get('/productos/alertas-stock'),
+        api.get('/reportes/dia')
       ])
-      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a)
+      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
     } catch { toast('Error al cargar datos', 'error') }
-  }, [])
-
-  const cargarReporte = useCallback(async (p) => {
-    try {
-      const r = await api.get(`/reportes/${p}`)
-      setReporte(r)
-    } catch { toast('Error al cargar reporte', 'error') }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     cargarTodo()
-    cargarReporte(periodoReporte)
     const unsub = createWS('admin', msg => {
       if (msg.tipo === 'alerta_stock') {
         toast(`⚠️ Stock bajo: ${msg.producto_nombre} (${msg.stock} uds.)`, 'warning', 6000)
@@ -70,27 +64,107 @@ export default function Admin() {
         })
       }
       if (msg.tipo === 'mesa_actualizada') setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
-      if (msg.tipo === 'orden_creada') cargarTodo()
-      if (msg.tipo === 'orden_cerrada') cargarTodo()
+      if (msg.tipo === 'orden_creada' || msg.tipo === 'orden_cerrada') {
+        cargarTodo() // Recarga datos si hay movimientos en cocina/caja
+      }
     })
     return unsub
-  }, [])
+  }, [cargarTodo])
 
-  useEffect(() => { cargarReporte(periodoReporte) }, [periodoReporte])
+  //generador de pdf
+  const generarPDFCorte =(datos,periodo)=>{
+    const doc=new jsPDF()
+    const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
+    const resumenArray = datos.resumen || [];
+    const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta');
+    const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia');
 
-  const guardarMesa = async () => {
+    const efectivo = datos.efectivo_esperado || 0;
+    const tarjeta = tarjetaObj ? tarjetaObj.total : 0;
+    const transferencia = transferenciaObj ? transferenciaObj.total : 0;
+    const totalGeneral = datos.total_general || 0;
+    doc.setFillColor(31,41,55)
+    doc.rect(0,0,210,35,'F')
+    doc.setFont("helvetica","bold")
+    doc.setFontSize(22)
+    doc.setTextColor(255,255,255)
+    doc.text("LAS TRES MARIAS",15,15)
+    doc.setFontSize(11)
+    doc.setFont("helvetica","normal")
+    doc.text(`REPORTE Y CIERRE ${labelPeriodo}`, 15, 25)
+    doc.setTextColor(80, 80, 80)
+    doc.setFontSize(10)
+    doc.text(`Fecha de Impresión: ${new Date().toLocaleDateString()}`, 15, 45)
+    doc.text(`Hora de Cierre: ${new Date().toLocaleTimeString()}`, 15, 51)
+    
+    doc.setDrawColor(220, 225, 230)
+    doc.setFillColor(248, 250, 252)
+    doc.rect(15, 60, 180, 70, 'FD')
+    
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(12)
+    doc.text("CONCEPTO / CANAL DE PAGO", 22, 70)
+    doc.text("MONTO TOTAL", 150, 70)
+    
+    doc.setDrawColor(160, 174, 192)
+    doc.line(22, 74, 188, 74)
+    
+    doc.setFont("Helvetica", "normal")
+    doc.text("Efectivo Esperado en Caja:", 22, 83)
+    doc.text(`$${(efectivo).toFixed(2)}`, 150, 83)
+    
+    doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
+    doc.text(`$${(tarjeta).toFixed(2)}`, 150, 93)
+    
+    doc.text("Pagos Recibidos por Transferencia:", 22, 103)
+    doc.text(`$${(transferencia).toFixed(2)}`, 150, 103)
+    
+    doc.line(22, 110, 188, 110)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
+    doc.text(`$${(totalGeneral).toFixed(2)}`, 150, 119)
+    
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "italic")
+    doc.setTextColor(150, 150, 150)
+    doc.text("Este documento representa un cierre de operaciones en el punto de venta en tiempo real.", 15, 145)
+    
+    doc.save(`Corte_${labelPeriodo}_${new Date().toISOString().split('T')[0]}.pdf`)
+  }  
+
+const guardarMesa = async () => {
     try {
       if (modalMesa === 'nueva') {
-        await api.post('/mesas/', formMesa)
-        toast('Mesa creada', 'success')
+        // 1. Verificamos si existe una mesa con ese nombre (ignora mayúsculas/minúsculas)
+        const mesaExistente = mesas.find(
+          m => m.nombre.toLowerCase() === formMesa.nombre.toLowerCase()
+        );
+
+        if (mesaExistente) {
+          // 2. Si existe, la reactivamos cambiando su estado a 'disponible'
+          await api.put(`/mesas/${mesaExistente.id}`, {
+            ...formMesa, // Mantiene el nombre y la nueva capacidad si se cambió
+            estado: 'disponible'
+          });
+          toast('Mesa existente reactivada y disponible', 'success');
+        } else {
+          // 3. Si no existe, la creamos normalmente
+          await api.post('/mesas/', formMesa);
+          toast('Mesa creada', 'success');
+        }
       } else {
-        await api.put(`/mesas/${modalMesa.id}`, formMesa)
-        toast('Mesa actualizada', 'success')
+        // Lógica de edición normal
+        await api.put(`/mesas/${modalMesa.id}`, formMesa);
+        toast('Mesa actualizada', 'success');
       }
-      setModalMesa(null)
-      cargarTodo()
-    } catch (e) { toast(e.message, 'error') }
-  }
+      setModalMesa(null);
+      cargarTodo();
+    } catch (e) {
+      toast(e.message || 'Error al guardar mesa', 'error');
+    }
+  };
 
   const eliminarMesa = async (id) => {
     if (!confirm('¿Eliminar esta mesa?')) return
@@ -138,7 +212,23 @@ export default function Admin() {
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
-
+  
+  const manejarCerrarTurnoYDescargarPDF = async () => {
+    try{
+      const datosCorte = await api.get('/reportes/corte-caja')
+      generarPDFCorte(datosCorte, 'dia');
+      localStorage.removeItem('token');
+      localStorage.removeItem('Admin');
+      sessionStorage.clear();
+      toast('Turno cerrado y PDF descargado', 'success');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+      toast('Modo depuración: Revisa la consola (Fn + F12)', 'info');
+    }catch{
+      toast('Error al cerrar turno', 'error');
+    }
+  }
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  
@@ -149,17 +239,18 @@ export default function Admin() {
         {/* ══════════ DASHBOARD ══════════ */}
         {tab === 'dashboard' && (
           <div>
+            {/* Encabezado*/}
             <div className={style.dashboardHeader}>
               <div className={style.dashboardTitleGroup}>
                   <div className={style.dashboardIconWrapper}>
-                    <LayoutDashboard size={22} />
+                    
                   </div>
                   <div>
                     <h2 className={style.dashboardTitle}>Panel de Control</h2>
                     <p className={style.dashboardSubtitle}>Monitoreo rápido de operaciones</p>
                   </div>
               </div>
-
+              {/* FILTRO DE REPORTE*/}
               <div className={style.filterGroup}>
                   {['dia','semana','mes'].map(p => (
                     <button 
@@ -171,7 +262,7 @@ export default function Admin() {
                 ))}
               </div>
             </div>
-
+            {/* ALERTAS DE INVENTARIO*/}
             {alertas.length > 0 && (
               <div className={style.alertContainer}>
                   <div className={style.alertIconWrapper}>
@@ -191,6 +282,7 @@ export default function Admin() {
             )}
 
             <div className={style.kpiGrid}>
+              {/*TARJETA 1*/}
               <div className={`${style.kpiCard} ${style.kpiCard1}`}>
                 <div>  
                 <div className={style.kpiLabel}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
@@ -199,7 +291,7 @@ export default function Admin() {
               </div>
               <div className={style.kpiIcon1}><DollarSign size={28} /></div>
             </div> 
-
+            {/*tarjeta 2*/}
               <div className={style.kpiCard}>
               <div>
                   <div className={style.kpiLabel}>Órdenes abiertas</div>
@@ -208,7 +300,7 @@ export default function Admin() {
               </div>
               <div className={style.kpiIcon2}><Clock size={28} /></div>
             </div>    
-
+            {/*TARJETA 3*/}
               <div className={style.kpiCard}>
                 <div>
                   <div className={style.kpiLabel}>Mesas disponibles</div>
@@ -217,7 +309,7 @@ export default function Admin() {
                 </div>
                 <div className={style.kpiIcon3}><Utensils size={28} /></div>
               </div>
-
+            {/*TARJETA 4*/}
                 <div className={style.kpiCard}>
                 <div>
                   <div className={style.kpiLabel}>Alertas de stock</div>
@@ -227,11 +319,11 @@ export default function Admin() {
                 <div className={alertas.length > 0 ? style.kpiIcon4Error : style.kpiIcon4Success}><ShoppingBag size={28} /></div>  
               </div>
             </div>
-
+            {/*GRAFICAS*/}
             {reporte && (
               <div className={style.chartsGrid}>
                 <div className={style.chartCard1}>
-                  <h3 className={style.chartTitle1}><span>🏆</span>Top 5 Productos más vendidos</h3>
+                  <h3 className={style.chartTitle1}>🏆 Top 5 Productos más vendidos</h3>
                   {reporte.top_productos.length === 0 ? (
                     <p className={style.chartEmpty1}>Sin datos en este período</p>
                     ): (
@@ -265,16 +357,19 @@ export default function Admin() {
                 </div>
               </div>
             )}
-
+            {/*CIERRE DE TURNO*/}
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
-                <div className={style.auditIconWrap}><CheckCircle2 size={28} /></div>  
+                <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
+                  <CheckCircle2 size={28}  color="var(--primary)"/>
+                </div>  
                 <div>
-                <h3 className={style.auditTitle}>🏦 Corte de caja (hoy)</h3>
+                <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
                 <p className={style.auditDesc}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
                 </div>  
               </div>   
-                <button className={style.auditButton} onClick={async () => {
+                <button className={style.auditButton} 
+                onClick={async () => {
                     const c = await api.get('/reportes/corte-caja')
                     alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
                   }}>
@@ -282,7 +377,13 @@ export default function Admin() {
                     <ArrowUpRight size={16} />
                 </button>
               </div>
-            </div>
+              <div className={style.auditCard}>
+                <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
+                  <LockIcon size={16} />
+                  Cerrar Turno (PDF)
+                </button>
+              </div>
+            </div> 
         )}
 
         {/* ══════════ MESAS ══════════ */}
@@ -303,7 +404,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mesas.map(m => (
+                  {mesas.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' })).map(m => (
                     <tr key={m.id}>
                       <td className={style.tableThFont}>{m.nombre}</td>
                       <td>{m.capacidad} personas</td>
@@ -320,7 +421,7 @@ export default function Admin() {
                           }} title="Editar">
                             <Edit2 size={16} />
                           </button>
-                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']} ${style.btnErrorText}`} onClick={() => eliminarMesa(m.id)} title="Eliminar">
+                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']} ${style.btnErrorText}`} onClick={() => setMesaAEliminar(m)} title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -364,7 +465,7 @@ export default function Admin() {
                         {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>⚠️ bajo</span>}
                       </td>
                       <td>
-                        <span className={`${style.badge} ${p.activo ? style['badge-success'] : style['badge-gray']}`}>
+                        <span className={`${style.badge} ${p.activo ? style['badge-success'] : style['badge-error']}`}>
                           {p.activo ? 'activo' : 'inactivo'}
                         </span>
                       </td>
@@ -376,10 +477,13 @@ export default function Admin() {
                           }} title="Editar">
                             <Edit2 size={16} />
                           </button>
-                          <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => setModalStockId(p.id)} title="Ajustar stock">
+                          <button 
+                            className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']} ${style.btnStock}`} 
+                            onClick={() => setModalStockId(p.id)}
+                            title="Ajustar stock">
                             <TrendingUp size={16} />
                           </button>
-                          <button className={`${style.btn} ${style['btn-sm']} ${p.activo ? style['btn-error'] : style['btn-success']}`} onClick={() => toggleActivoProducto(p)}>
+                          <button className={`${style.btn} ${style.btnDesactivar} ${p.activo ? style['btn-error'] : style['btn-success']}`} onClick={() => toggleActivoProducto(p)}>
                             {p.activo ? 'Desactivar' : 'Activar'}
                           </button>
                         </div>
@@ -446,49 +550,69 @@ export default function Admin() {
         )}
 
         {/* ══════════ INVENTARIO ══════════ */}
-        {tab === 'inventario' && (
-          <div>
-            <h2 className={style.sectionTitleMb}>Inventario</h2>
-            {alertas.length > 0 && (
-              <div className={style.invAlertWrap}>
-                <AlertTriangle size={20} color='var(--error)' className={style.invAlertIcon} />
-                <div>
-                  <strong className={style.invAlertText}>{alertas.length} producto(s) con stock bajo</strong>
-                </div>
-              </div>
-            )}
-            <div className={style['table-wrap']}>
-              <table>
-                <thead>
-                  <tr><th>Producto</th><th>Estación</th><th>Stock actual</th><th>Mínimo</th><th>Estado</th><th>Acción</th></tr>
-                </thead>
-                <tbody>
-                  {productos.filter(p => p.activo).map(p => (
-                    <tr key={p.id}>
-                      <td className={style.tableThFont}>{p.nombre}</td>
-                      <td><span className={`${style.badge} ${style['badge-gray']}`}>{p.estacion}</span></td>
-                      <td className={`${style.stockTextBase} ${p.stock <= p.stock_minimo ? style.stockTextError : style.stockTextNormal}`}>
-                        {p.stock}
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{p.stock_minimo}</td>
-                      <td>
-                        {p.stock <= p.stock_minimo
-                          ? <span className={`${style.badge} ${style['badge-error']}`}>⚠️ Stock bajo</span>
-                          : <span className={`${style.badge} ${style['badge-success']}`}>✓ OK</span>
-                        }
-                      </td>
-                      <td>
-                        <button className={`${style.btn} ${style['btn-ghost']} ${style['btn-sm']}`} onClick={() => { setModalStockId(p.id); setAjusteStock({ delta: '', motivo: 'ingreso' }) }}>
-                          Ajustar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+              {tab === 'inventario' && (
+  <div>
+    <div className={style.sectionHeader}>
+      <h2 className={style.sectionTitle}>Inventario</h2>
+    </div>
+    <div className={style.inventoryAlert}>
+      <span className={style.inventoryAlertIcon}>⚠️</span>
+      <span>2 producto(s) con stock bajo</span>
+    </div>
+
+    {/* Contenedor de la tabla usando tus clases nativas */}
+    <div className={style['table-wrap']}>
+      <table>
+        <thead>
+          <tr>
+            <th>PRODUCTO</th>
+            <th>ESTACIÓN</th>
+            <th className={style.textCenter}>STOCK ACTUAL</th>
+            <th>MÍNIMO</th>
+            <th>ESTADO</th>
+            <th className={style.textCenter}>ACCIÓN</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => {
+            const esStockBajo = p.stock <= p.stock_minimo;
+            return (
+              <tr key={p.id}>
+                <td>{p.nombre}</td>
+                <td>
+                  <span className={style.badge}>{p.estacion}</span>
+                </td>
+                <td className={style.textCenter}>
+                  <span className={`${style.stockTextBase} ${esStockBajo ? style.stockTextError : style.stockTextNormal}`}>
+                    {p.stock}
+                  </span>
+                </td>
+                <td>{p.stock_minimo}</td>
+                <td>
+                  <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
+                    {esStockBajo ? '⚠️ Stock Bajo' : '✓ OK'}
+                  </span>
+                </td>
+                <td className={style.textCenter}>
+                  <button 
+                    className={style.btnAjustar} 
+                    onClick={() => { 
+                      setModalStockId(p.id); 
+                      setAjusteStock({ delta: '', motivo: 'ingreso' }); 
+                    }}
+                  >
+                    Ajustar
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
+
       </div>
 
       {/* ── MODALES ── */}
@@ -510,43 +634,87 @@ export default function Admin() {
         </Modal>
       )}
 
-      {modalProducto && (
-        <Modal title={modalProducto === 'nuevo' ? 'Nuevo Producto' : 'Editar Producto'} onClose={() => setModalProducto(null)}
-          footer={<>
-            <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalProducto(null)}>Cancelar</button>
-            <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarProducto}>Guardar</button>
-          </>}
-        >
-          <div className={style['form-field']}>
-            <label>Nombre</label>
-            <input value={formProd.nombre} onChange={e => setFormProd(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del producto" />
-          </div>
-          <div className={style['grid-2']}>
-            <div className={style['form-field']}>
-              <label>Precio ($)</label>
-              <input type="number" step="0.5" min="0" value={formProd.precio} onChange={e => setFormProd(f => ({ ...f, precio: e.target.value }))} placeholder="0.00" />
-            </div>
-            <div className={style['form-field']}>
-              <label>Estación</label>
-              <select value={formProd.estacion} onChange={e => setFormProd(f => ({ ...f, estacion: e.target.value }))}>
-                <option value="gorditas">Gorditas</option>
-                <option value="menudo">Menudo</option>
-                <option value="antojitos">Antojitos</option>
-              </select>
-            </div>
-          </div>
-          <div className={style['grid-2']}>
-            <div className={style['form-field']}>
-              <label>Stock inicial</label>
-              <input type="number" min="0" value={formProd.stock} onChange={e => setFormProd(f => ({ ...f, stock: e.target.value }))} />
-            </div>
-            <div className={style['form-field']}>
-              <label>Stock mínimo (alerta)</label>
-              <input type="number" min="0" value={formProd.stock_minimo} onChange={e => setFormProd(f => ({ ...f, stock_minimo: e.target.value }))} />
-            </div>
-          </div>
-        </Modal>
-      )}
+{modalProducto && (
+  <Modal 
+    title={modalProducto === 'nuevo' ? 'Nuevo Producto' : 'Editar Producto'} 
+    onClose={() => setModalProducto(null)}
+    footer={
+      <>
+        <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalProducto(null)}>
+          Cancelar
+        </button>
+        <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarProducto}>
+          Guardar
+        </button>
+      </>
+    }
+  >
+    {/* Contenedor maestro para asegurar que todo se alinee verticalmente y no se encime */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      
+      {/* 1. Campo Nombre */}
+      <div className={style['form-field']}>
+        <label>Nombre</label>
+        <input 
+          value={formProd.nombre} 
+          onChange={e => setFormProd(f => ({ ...f, nombre: e.target.value }))} 
+          placeholder="Nombre del producto" 
+        />
+      </div>
+
+      {/* 2. Bloque de Precio y Estación */}
+      <div className={style['grid-2']}>
+        <div className={style['form-field']}>
+          <label>Precio ($)</label>
+          <input 
+            type="number" 
+            step="0.5" 
+            min="0" 
+            value={formProd.precio} 
+            onChange={e => setFormProd(f => ({ ...f, precio: e.target.value }))} 
+            placeholder="0.00" 
+          />
+        </div>
+        
+        <div className={style['form-field']}>
+          <label>Estación</label>
+          <select 
+            value={formProd.estacion} 
+            onChange={e => setFormProd(f => ({ ...f, estacion: e.target.value }))}
+          >
+            <option value="gorditas">Gorditas</option>
+            <option value="menudo">Menudo</option>
+            <option value="antojitos">Antojitos</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 3. Bloque de Stocks */}
+      <div className={style['grid-2']}>
+        <div className={style['form-field']}>
+          <label>Stock inicial</label>
+          <input 
+            type="number" 
+            min="0" 
+            value={formProd.stock} 
+            onChange={e => setFormProd(f => ({ ...f, stock: e.target.value }))} 
+          />
+        </div>
+        
+        <div className={style['form-field']}>
+          <label>Stock mínimo (alerta)</label>
+          <input 
+            type="number" 
+            min="0" 
+            value={formProd.stock_minimo} 
+            onChange={e => setFormProd(f => ({ ...f, stock_minimo: e.target.value }))} 
+          />
+        </div>
+      </div>
+
+    </div>
+  </Modal>
+)}
 
       {modalStockId && (
         <Modal title="Ajuste de Stock" onClose={() => setModalStockId(null)}
@@ -574,6 +742,30 @@ export default function Admin() {
           </div>
         </Modal>
       )}
+
+      {mesaAEliminar && (
+      <div className={style.modalDeleteContainer}>
+        <button className={style.closeModalBtn} onClick={() => setMesaAEliminar(null)}>×</button>
+        <h2>Confirmar Eliminación</h2>
+        
+        <div className={style.modalDeleteBody}>
+          <p>¿Estás seguro de que deseas eliminar la <strong>{mesaAEliminar.nombre}</strong>?</p>
+          <p className={style.warningText}>Esta acción no se puede deshacer.</p>
+        </div>
+
+        <div className={style.modalDeleteActions}>
+          <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setMesaAEliminar(null)}>
+            Cancelar
+          </button>
+          <button className={`${style.btn} ${style['btn-primary']}`} onClick={() => { 
+            eliminarMesa(mesaAEliminar.id); 
+            setMesaAEliminar(null); 
+          }}>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   )
 }
