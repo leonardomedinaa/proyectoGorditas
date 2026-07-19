@@ -469,6 +469,46 @@
   transform: translateY(-1px);
 }
 
+.btnStock {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+.btnStock:hover {
+  background-color: #bae6fd !important;
+  color: #0c4a6e !important;
+}
+
+.btnDesactivar {
+  width: auto !important;          /* Rompe el cuadro rígido para que quepa el texto */
+  height: 32px;                    /* Mantiene la misma altura que los de iconos */
+  padding: 0 0.85rem !important;   /* Margen interno a los lados del texto */
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;             /* Evita que el texto se parta en dos renglones */
+  
+  /* Tonos rojos sutiles para advertencia */
+  background-color: #fee2e2 !important; 
+  color: #b91c1c !important;            
+  border: 1px solid #fecaca !important;
+}
+
+.btnDesactivar:hover {
+  background-color: #fecaca !important;
+  color: #991b1b !important;
+}
+
+
+.tableActionsGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .table-wrap{
   background: #eec793;
   border-radius: 0.75rem;
@@ -550,6 +590,12 @@
   background-color: #fda79b;
   color: #b40f09;
 }
+
+.badge-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
 .tableActionsGroup {
   display: flex;
   gap: 0.6rem;
@@ -597,8 +643,8 @@
   box-shadow: none;
 }
 
-div:has(> .form-field),
-div:has(> .grid-2) {
+.pageContainer>div:has(> .form-field),
+.pageContainer>div:has(> .grid-2) {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -929,4 +975,236 @@ div:has(> .form-field) div:has(> .btn) {
 @keyframes modalPopUp {
   from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.stockTextBase{
+  padding: 0.25rem 0.6rem !important;
+  border-radius: 6px !important;
+  display: inline-block !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  text-align: center !important;
+}
+
+.stockTextNormal {
+  background-color: #f0fdf4 !important; /* Un verde pastel muy limpio */
+  color: #166534 !important;            /* Texto verde oscuro */
+  border: 1px solid #bbf7d0 !important;
+}
+
+.stockTextError {
+  background-color: #fee2e2 !important; /* Rojo pastel de advertencia */
+  color: #dc2626 !important;            /* Texto rojo oscuro */
+  border: 1px solid #fecaca !important;
+}
+
+/* Asegura que el contenedor del formulario dentro del modal fluya verticalmente sin límites raros */
+.modalFormContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;                  /* Reducimos un poco el espacio */
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 50vh;          /* Le ponemos un límite al formulario */
+  overflow-y: auto;          /* Forzamos scroll interno si es necesario */
+  padding-right: 4px;        /* Espacio para la barrita de scroll */
+}
+
+/* Maneja las filas de 2 columnas de manera limpia y responsiva */
+.modalFormRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Hace que cada campo dentro de la fila ocupe exactamente la mitad del espacio disponible */
+.modalFormRow > div {
+  flex: 1;
+  min-width: 0; /* Evita desbordamientos en inputs */
+}
+
+/* El contenedor de la tarjeta blanca dentro de tu Modal */
+.modalCard {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  
+  /* 🌟 ESTO ES LO CLAVE 🌟 */
+  max-height: 90vh;          /* Evita que sea más alto que el 90% de la pantalla */
+  display: flex;
+  flex-direction: column;    /* Organiza el header, body y footer en fila */
+}
+
+/* El contenedor del contenido (donde caen los inputs) */
+.modalBody {
+  padding: 20px;
+  overflow-y: auto;          /* Si el formulario es largo, activa scroll solo aquí */
+  flex: 1;                   /* Toma el espacio restante de forma fluida */
+}
+
+/* ───────────────────────────────────────── */
+/* SECCIÓN DE ÓRDENES ACTIVAS (GRID & CARDS)  */
+/* ───────────────────────────────────────── */
+
+/* Contenedor principal en cuadrícula responsiva */
+.ordenes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* La tarjeta contenedora de cada orden */
+.ordenCard {
+  background: #ffffff;
+  border: 1px solid #f7d99c;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(42, 35, 30, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ordenCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -2px rgba(42, 35, 30, 0.1);
+}
+
+/* Encabezado de la tarjeta con el tono Ámbar de tus tablas */
+.ordenHeader {
+  background-color: #fcaf62;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f7d99c;
+}
+
+.ordenMesa {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2c2520;
+}
+
+.ordenNumber {
+  font-size: 0.85rem;
+  color: #ca6812;
+  font-weight: 700;
+  margin-top: 0.1rem;
+}
+
+.ordenTimeInfoWrap {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ordenTimeText {
+  font-size: 0.8rem;
+  color: #4a3e35;
+  font-weight: 600;
+}
+
+/* Cuerpo de la tarjeta (Fondo crema sutil) */
+.ordenBody {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background-color: #fffaf3;
+}
+
+/* Cada fila de platillo pedido */
+.ordenItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-bottom: 1px dashed #f7d99c;
+  padding-bottom: 0.6rem;
+}
+
+.ordenItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Cantidad multiplicadora destacada en Terracota */
+.ordenQty {
+  font-weight: 700;
+  color: #be5a24;
+  font-size: 1rem;
+  min-width: 24px;
+}
+
+.ordenProducto {
+  flex: 1;
+}
+
+.ordenProductoName {
+  font-weight: 600;
+  color: #2c2520;
+  font-size: 0.95rem;
+}
+
+/* Modificadores o notas extras */
+.ordenProductoMod {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.15rem;
+  font-style: italic;
+}
+
+.ordenStatusGroup {
+  display: flex;
+  align-items: center;
+}
+
+/* Clase de soporte para el badge gris/pendiente */
+.badge-gray {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+/* Footer de la tarjeta con el Total acumulado */
+.ordenFooter {
+  background: #f7f1e5;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #f7d99c;
+}
+
+.ordenSubtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  color: #2c2520;
+  font-size: 1rem;
+}
+
+.ordenTotalText {
+  font-size: 1.25rem;
+  color: #be5a24;
+}
+
+/* Estado vacío elegante cuando no hay órdenes */
+.ordenesEmptyWrap {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #f7f1e5;
+  border-radius: 0.75rem;
+  border: 2px dashed #fcaf62;
+  margin-top: 1.5rem;
+}
+
+.ordenesEmptyText {
+  font-size: 1.15rem;
+  color: #ca6812;
+  font-weight: 600;
+  margin: 0;
 }
