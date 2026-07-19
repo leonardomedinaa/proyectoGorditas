@@ -108,6 +108,7 @@ export default function Mesero() {
 
   // ── Carrito ──
   const agregarAlCarrito = (producto, modificador = null) => {
+    
     const key = `${producto.id}_${modificador?.id ?? 'base'}_c${comensalActivo}`
     setCarrito(prev => {
       const exists = prev.find(c => c.key === key)
@@ -122,14 +123,18 @@ export default function Mesero() {
   }
 
   const clickProducto = (prod) => {
-    const mods = prod.modificadores?.filter(m => !m.global_mod) || []
-    if (mods.length > 0) {
-      setProdPendiente(prod)
-    } else {
-      agregarAlCarrito(prod)
-    }
-  }
+  // 1. Validamos si tiene cualquier modificador en su arreglo
+  const tieneModificadores = prod.modificadores && prod.modificadores.length > 0;
+  
+  // 2. O si el nombre incluye "birria" (por seguridad para forzar la ventana)
+  const esBirria = prod.nombre?.toLowerCase().includes('birria') && !prod.nombre?.toLowerCase().includes('kg');
 
+  if (tieneModificadores || esBirria) {
+    setProdPendiente(prod); // Esto levanta el modal
+  } else {
+    agregarAlCarrito(prod); // Va directo al carrito si no tiene nada
+  }
+}
   const cambiarCantidad = (key, delta) => {
     setCarrito(prev => prev.map(c => c.key === key ? { ...c, cantidad: Math.max(1, c.cantidad + delta) } : c).filter(c => c.cantidad > 0))
   }
@@ -137,7 +142,7 @@ export default function Mesero() {
   const quitarItem = (key) => setCarrito(prev => prev.filter(c => c.key !== key))
 
   const totalCarrito = carrito.reduce((s, c) => s + c.precio * c.cantidad, 0)
-
+  const totalIngresado = pagos.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
   // ── Enviar orden ──
   let enviandoComanda = false;
   const enviarOrden = async () => {
@@ -564,64 +569,71 @@ export default function Mesero() {
         </div>
       )}
 
-      {/* ── MODAL MODIFICADORES ── */}
-      {prodPendiente && (
-        /* Al hacer clic en el fondo, se cierra la ventana */
-        <div className={styles['modal-overlay']} onClick={() => setProdPendiente(null)}>
-          
-          {/* Con stopPropagation evitamos que los clics dentro del cuadro cierren el modal */}
-          <div className={styles.modal} style={{ maxWidth: 500, width: '90vw' }} onClick={e => e.stopPropagation()}>
-            
-            {/* Encabezado del modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
-                Opciones — {prodPendiente.nombre}
-              </h2>
-              <button onClick={() => setProdPendiente(null)} className={styles['btn-cerrar-fino']}>✕</button>
-            </div>
+{/* ── MODAL MODIFICADORES ── */}
+{prodPendiente && (
+  <div className={styles['modal-overlay']} onClick={() => setProdPendiente(null)}>
+    <div className={styles.modal} style={{ maxWidth: 500, width: '95vw' }} onClick={e => e.stopPropagation()}>
+      
+      {/* Encabezado */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
+          Opciones — {prodPendiente.nombre}
+        </h2>
+        <button onClick={() => setProdPendiente(null)} className={styles['btn-cerrar-fino']}>✕</button>
+      </div>
 
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', padding: '10px 0', width: '100%' }}>
-              <button className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente); setProdPendiente(null) }}>
-                <span>Sin modificador</span>
-                <span>${prodPendiente.precio.toFixed(2)}</span>
-              </button>
-              {prodPendiente.modificadores?.filter(m => !m.global_mod).map(mod => {
-                let precio = prodPendiente.precio + (mod.precio_extra || 0)
-                if (mod.descuento_pct > 0) precio = precio * (1 - mod.descuento_pct / 100)
-                return (
-                  <button key={mod.id} className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, mod); setProdPendiente(null) }}>
-                    <span>
-                      {mod.nombre}
-                      {mod.descuento_pct > 0 && <span className={`badge ${styles['badge-green']}`} style={{ marginLeft: 6 }}>-{mod.descuento_pct}%</span>}
-                      {mod.precio_extra > 0 && <span className={`badge ${styles['badge-amber']}`} style={{ marginLeft: 6 }}>+${mod.precio_extra}</span>}
-                    </span>
-                    <span>${precio.toFixed(2)}</span>
-                  </button>
-                )
-              })}
-            </div>
-            
-            <div className={styles.sep} style={{ backgroundColor: 'var(--border-neutral)' }} />
-            
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 8 }}>Extras globales:</p>
-            {productos.length > 0 && (() => {
-              const extraQueso = prodPendiente.modificadores?.find(m => m.global_mod)
-              if (!extraQueso) return null
-              return (
-                <button className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, extraQueso); setProdPendiente(null) }}>
-                  <span>{extraQueso.nombre}</span>
-                  <span>+${extraQueso.precio_extra.toFixed(2)}</span>
-                </button>
-              )
-            })()}
-            
-          </div>
-        </div>
-      )}
+      <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', padding: '10px 0', width: '100%' }}>
+        
+        {/* ✨ CONDICIÓN: El botón Normal / Sencillo SOLO se renderiza si es un producto de birria */}
+        {prodPendiente.nombre?.toLowerCase().includes('birria') && (
+          <button 
+            className={styles['variante-item-btn']} 
+            onClick={() => { 
+              agregarAlCarrito(prodPendiente); 
+              setProdPendiente(null); 
+            }}
+          >
+            <span>Normal / Sencillo</span>
+            <span>${prodPendiente.precio.toFixed(2)}</span>
+          </button>
+        )}
 
-      {/* ── MODAL COBRAR ── */}
+        {/* Variantes locales (Guisos, tamaños, etc., para los demás productos) */}
+        {prodPendiente.modificadores?.filter(m => !m.global_mod).map(mod => {
+          let precio = prodPendiente.precio + (mod.precio_extra || 0)
+          if (mod.descuento_pct > 0) precio = precio * (1 - mod.descuento_pct / 100)
+          return (
+            <button key={mod.id} className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, mod); setProdPendiente(null) }}>
+              <span>
+                {mod.nombre}
+                {mod.descuento_pct > 0 && <span className={`badge ${styles['badge-green']}`} style={{ marginLeft: 6 }}>-{mod.descuento_pct}%</span>}
+                {mod.precio_extra > 0 && <span className={`badge ${styles['badge-amber']}`} style={{ marginLeft: 6 }}>+${mod.precio_extra}</span>}
+              </span>
+              <span>${precio.toFixed(2)}</span>
+            </button>
+          )
+        })}
+
+        {/* Extras globales (Como el Extra queso de la birria) */}
+        {prodPendiente.modificadores?.filter(m => m.global_mod).map(modGlobal => {
+          let precio = prodPendiente.precio + (modGlobal.precio_extra || 0)
+          return (
+            <button key={modGlobal.id} className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, modGlobal); setProdPendiente(null) }}>
+              <span>Con {modGlobal.nombre}</span>
+              <span>${precio.toFixed(2)}</span>
+            </button>
+          )
+        })}
+
+      </div>
+      
+    </div>
+  </div>
+)}
+
+{/* ── MODAL COBRAR ── */}
       {modalPago && (
         /* Al hacer clic en el fondo, se cierra la ventana */
         <div className={styles['modal-overlay']} onClick={() => setModalPago(null)}>
@@ -729,11 +741,45 @@ export default function Mesero() {
                 + Agregar método de pago
               </button>
 
+              {/* 📊 NUEVA SECCIÓN DE CONTROL DE BALANCE */}
+              <div style={{ 
+                marginTop: '16px', 
+                padding: '10px', 
+                borderRadius: '6px', 
+                background: 'var(--bg-card-neutral)',
+                fontSize: '14px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                border: '1px solid var(--border-neutral)'
+              }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Ingresado: <strong>${totalIngresado.toFixed(2)}</strong></span>
+                {Math.abs(totalIngresado - modalPago.total) < 0.01 ? (
+                  <span style={{ color: '#22c55e', fontWeight: 'bold' }}>¡Monto exacto! Cuadrado.</span>
+                ) : (
+                  <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                    {totalIngresado < modalPago.total 
+                      ? `Faltan: $${(modalPago.total - totalIngresado).toFixed(2)}` 
+                      : `Sobran: $${(totalIngresado - modalPago.total).toFixed(2)}`
+                    }
+                  </span>
+                )}
+              </div>
+
               <div className={styles['modal-pago-footer']}>
                 <button className={`${styles.btn} ${styles['btn-cancelar']}`} onClick={() => setModalPago(null)}>
                   Cancelar
                 </button>
-                <button className={`${styles.btn} ${styles['btn-confirmar']}`} onClick={cobrar}>
+                
+                {/* 🔒 BOTÓN CORREGIDO CON DISABLED EN BASE A LA DIFERENCIA DECIMAL EXACTA */}
+                <button 
+                  className={`${styles.btn} ${styles['btn-confirmar']}`} 
+                  onClick={cobrar}
+                  disabled={Math.abs(totalIngresado - modalPago.total) >= 0.01}
+                  style={{
+                    opacity: Math.abs(totalIngresado - modalPago.total) < 0.01 ? 1 : 0.5,
+                    cursor: Math.abs(totalIngresado - modalPago.total) < 0.01 ? 'pointer' : 'not-allowed'
+                  }}
+                >
                   Confirmar cobro
                 </button>
               </div>
