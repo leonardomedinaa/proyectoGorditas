@@ -69,7 +69,7 @@ def init_db():
             Producto(nombre="Huarache Maíz Morado de birria", precio=60.0, estacion="birria", stock=40),
             Producto(nombre="Birriamen", precio=100.0, estacion="birria", stock=30),
             Producto(nombre="Orden de birria (Plato mediano, 200g Carne)", precio=110.0, estacion="birria", stock=30),
-            Producto(nombre="Consome con carne (500ml, 100g Carne)", precio=60.0, estacion="birria", stock=40),
+            Producto(nombre="Consome con carne (500ml, 100g Carne)", precio=60.0, estacion="menudo", stock=40),
             Producto(nombre="Kg de birria", precio=388.0, estacion="birria", stock=15),
             Producto(nombre="1/2 Kg de birria", precio=200.0, estacion="birria", stock=20),
             
