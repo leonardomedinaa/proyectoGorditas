@@ -597,262 +597,116 @@
   box-shadow: none;
 }
 
-/* ───────────────────────────────────────── */
-/* FORMULARIOS                   */
-/* ───────────────────────────────────────── */
-/*.form-field {
-  display: flex;
-  flex-direction: column ;
-  gap: 0.5rem ;
-  width: 100% ;
-  margin-bottom: 0;
-  text-align: left ;
-}
-.form-field label {
-  font-size: 0.9rem ;
-  font-weight: 600;
-  color: #4a3e35;
-  margin: 0;
-}
-.form-field input,
-.form-field select {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background-color: #ffffff;
-  color: #1e293b;
-  font-size: 0.95rem;
-  font-family: inherit;
-  transition: all 0.2s ease-in-out;
-  box-sizing: border-box;
-}
-.form-field input:focus,
-.form-field select:focus {
-  outline: none;
-  border-color: #be5a24; 
-  box-shadow: 0 0 0 3px rgba(190, 90, 36, 0.18);
-}
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  width: 100% ;
-}
-.modalHelpText {
-  font-size: 0.875rem ;
-  color: #64748b ;
-  margin-bottom: 1.25rem;
-  line-height: 1.4 ;
-  text-align: left ;
-}
-.pageContainer > *:has(.form-field) {
+div:has(> .form-field),
+div:has(> .grid-2) {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 9999; 
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 1rem;
-  width: 90% ;
-  max-width: 460px; 
+  z-index: 99999;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  width: 90%;
+  max-width: 440px;
   background: #ffffff;
   border-radius: 1.25rem;
   padding: 2rem;
-  border: 1px solid #e8e3db;
+  border: 1px solid #e2e8f0;
   box-sizing: border-box;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
               0 10px 10px -5px rgba(0, 0, 0, 0.04),
-              0 0 0 100vmax rgba(42, 35, 30, 0.45); 
-  animation: modalPopUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes modalPopUp {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -43%) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.pageContainer > *:has(.form-field) h2,
-.pageContainer > *:has(.form-field) h3,
-.pageContainer > *:has(.form-field) strong {
-  display: block;
-  width: 100%;
-  font-size: 1.4rem;
-  color: #2e2520 ; 
-  font-weight: 700;
-  margin-top: 0 ;
-  margin: 0;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-  text-align: left;
-}
-.pageContainer > *:has(.form-field) > div:not(:last-child):not(:first-child) {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1rem !important;
-  width: 100% !important;
-}
-
-.pageContainer > *:has(.form-field) button:not(.btn) {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  transition: all 0.2s;
-}
-
-.pageContainer > *:has(.form-field) button:not(.btn):hover {
-  background: #f1f5f9;
-  color: #be5a24; 
-}
-
-.pageContainer > *:has(.form-field) > div:last-child,
-.pageContainer > *:has(.form-field) footer {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;  
-  gap: 0.75rem;
-  width: 100%;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f1f5f9;
-}
-*/
-/* ════════════════════════════════════════════════════════════════════
-   REDISEÑO DE MODALES DEFINTIVO (CORRECCIÓN DE BOTÓN X Y ALINEACIÓN)
-   ════════════════════════════════════════════════════════════════════ */
-
-/* Tarjeta contenedora principal del Modal */
-div:has(> .form-field),
-div:has(> .grid-2) {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  z-index: 99999 !important;
-  
-  /* Usamos Grid de 1 columna: obliga a los elementos a ir uno abajo del otro */
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 1.25rem !important;
-  
-  width: 90% !important;
-  max-width: 440px !important;
-  background: #ffffff !important;
-  border-radius: 1.25rem !important;
-  padding: 2rem !important;
-  border: 1px solid #e2e8f0 !important;
-  box-sizing: border-box !important;
-  
-  /* Fondo oscuro difuminado detrás del modal */
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-              0 10px 10px -5px rgba(0, 0, 0, 0.04),
-              0 0 0 100vmax rgba(42, 35, 30, 0.5) !important;
-  
-  animation: modalPopUp 0.2s ease-out forwards !important;
+              0 0 0 100vmax rgba(42, 35, 30, 0.5);
+  animation: modalPopUp 0.2s ease-out forwards;
 }
 
 /* AISLAMIENTO DEL BOTÓN DE CERRAR (X) 
    Lo sacamos del flujo para que flote arriba a la derecha sin romper el diseño */
 div:has(> .form-field) > button:not([class*="btn"]) {
-  position: absolute !important;
-  top: 1.25rem !important;
-  right: 1.25rem !important;
-  margin: 0 !important;
-  background: #f1f5f9 !important;
-  border: none !important;
-  border-radius: 50% !important;
-  width: 2rem !important;
-  height: 2rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  z-index: 10 !important;
-  transition: background 0.2s !important;
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  margin: 0;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10 ;
+  transition: background 0.2s;
 }
 
 div:has(> .form-field) > button:not([class*="btn"]):hover {
-  background: #e2e8f0 !important;
+  background: #e2e8f0;
 }
 
-/* Estilo del Título del Formulario */
 div:has(> .form-field) > h2,
 div:has(> .form-field) > h3 {
-  font-size: 1.4rem !important;
-  font-weight: 700 !important;
-  color: #2e2520 !important; /* Tono café oscuro */
-  margin: 0 !important;
-  text-align: left !important;
-  border-bottom: 1px solid #f1f5f9 !important;
-  padding-bottom: 0.75rem !important;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2e2520;
+  margin: 0;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
 }
 
-/* Campos individuales del Formulario */
 .form-field {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0.4rem !important;
-  width: 100% !important;
-  text-align: left !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  text-align: left;
 }
 
 .form-field label {
-  font-size: 0.875rem !important;
-  font-weight: 600 !important;
-  color: #5c4d42 !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #5c4d42;
 }
 
 .form-field input,
 .form-field select {
-  width: 100% !important;
-  padding: 0.75rem 1rem !important;
-  border: 1.5px solid #cbd5e1 !important;
-  border-radius: 0.6rem !important;
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-  font-size: 0.95rem !important;
-  box-sizing: border-box !important;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 0.6rem;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
 .form-field input:focus,
 .form-field select:focus {
-  outline: none !important;
-  border-color: #be5a24 !important; /* Enfoque terracota */
-  box-shadow: 0 0 0 3px rgba(190, 90, 36, 0.15) !important;
+  outline: none;
+  border-color: #be5a24; 
+  box-shadow: 0 0 0 3px rgba(190, 90, 36, 0.15);
 }
 
-/* Contenedor del Footer (Botones Cancelar y Guardar)
-   Forzamos a que estos dos sí vayan de lado y alineados a la derecha */
+/* Contenedor del Footer (Botones Cancelar y Guardar) */
 div:has(> .form-field) div:has(> .btn) {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  width: 100% !important;
-  margin-top: 0.5rem !important;
-  padding-top: 1.25rem !important;
-  border-top: 1px solid #f1f5f9 !important;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f1f5f9;
 }
 
 /* Soporte para inputs en doble columna (Productos) */
 .grid-2 {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 1rem !important;
-  width: 100% !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
 }
 
 /* Animación de aparición */
@@ -865,4 +719,214 @@ div:has(> .form-field) div:has(> .btn) {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   CORRECCIÓN ESTRUCTURAL DE MODALES (PROTECCIÓN TOTAL DE LA TABLA)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 1. VENTANA EMERGENTE DE EDICIÓN 
+   (Solo aplica a bloques principales con campos de formulario) */
+.pageContainer > div:has(.form-field) {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  
+  width: 90%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              0 0 0 100vmax rgba(42, 35, 30, 0.5);
+  
+  animation: modalPopUp 0.2s ease-out forwards;
+}
+
+/* 2. VENTANA EMERGENTE DE ELIMINACIÓN 
+   (El uso de ">" evita estrictamente que afecte a los botones de las filas) */
+.pageContainer > div:has(> button):not(:has(.form-field)) {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  
+  width: 90%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              0 0 0 100vmax rgba(42, 35, 30, 0.5);
+  
+  animation: modalPopUp 0.2s ease-out forwards;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MODAL DE ELIMINACIÓN PREMIUM (ESTILO IDENTICO A EDITAR MESA)
+   ════════════════════════════════════════════════════════════════════ */
+
+.modalDeleteContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  
+  width: 90%;
+  max-width: 440px; /* Mismo ancho exacto que el de Editar */
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  
+  /* Sombra elegante con fondo atenuado */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              0 0 0 100vmax rgba(42, 35, 30, 0.4);
+  
+  animation: modalPopUp 0.2s ease-out forwards;
+}
+
+/* El botón 'X' cuadrado y alineado a la derecha (Igual al de Editar) */
+.closeModalBtn {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 2rem;
+  height: 2rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem; /* Esquinas ligeramente suaves */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.closeModalBtn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* Título Principal */
+.modalDeleteContainer h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a; /* Mismo tono oscuro e imponente */
+  margin: 0;
+  text-align: left;
+  padding-right: 2.5rem; /* Evita que el texto choque con la X */
+}
+
+/* Cuerpo de texto con aire y legibilidad */
+.modalDeleteBody {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modalDeleteBody p {
+  font-size: 1rem;
+  color: #334155;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Texto de advertencia sutil */
+.warningText {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Contenedor de Botones Inferiores */
+.modalDeleteActions {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Estilo unificado de botones de acción */
+.modalDeleteActions button {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+/* Botón Cancelar (Gris Neutral) */
+.modalDeleteActions button:first-of-type {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.modalDeleteActions button:first-of-type:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Botón Eliminar (Terracota Corporativo) */
+.modalDeleteActions button:last-of-type {
+  background-color: #be5a24;
+  border-color: #be5a24;
+  color: #ffffff;
+}
+
+.modalDeleteActions button:last-of-type:hover {
+  background-color: #a34b1c;
+  border-color: #a34b1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(190, 90, 36, 0.15);
+}
+
+.modalDeleteActions button:last-of-type:active {
+  transform: translateY(0);
+}
+
+/* Animación de entrada fluida */
+@keyframes modalPopUp {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }

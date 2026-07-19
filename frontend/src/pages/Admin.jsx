@@ -9,10 +9,14 @@ import jsPDF from 'jspdf'
 import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
 <<<<<<< HEAD
+<<<<<<< HEAD
   ArrowUpRight, Lock as LockIcon
 =======
   ArrowUpRight, LayoutDashboard, Lock as LockIcon
 >>>>>>> 0618b31 (	Boton de cierre de corte)
+=======
+  ArrowUpRight, LayoutDashboard, Lock as LockIcon
+>>>>>>> 2433cb5 (Eliminacion de mesas)
  } from 'lucide-react'
 
 const TABS = [
@@ -45,14 +49,13 @@ export default function Admin() {
   const [mesaAEliminar, setMesaAEliminar] = useState(null);
   const cargarTodo = useCallback(async () => {
     try {
-      const [m, p, o, a,r] = await Promise.all([
+      const [m, p, o, a] = await Promise.all([
         api.get('/mesas/'),
         api.get('/productos/todos'),
         api.get('/ordenes/'),
         api.get('/productos/alertas-stock'),
-        api.get('/reportes/dia')
       ])
-      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
+      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a)
     } catch { toast('Error al cargar datos', 'error') }
   }, [toast])
   }, [toast])
@@ -75,10 +78,14 @@ export default function Admin() {
     })
     return unsub
 <<<<<<< HEAD
+<<<<<<< HEAD
   }, [cargarTodo])
 =======
   }, [])
 >>>>>>> 0618b31 (	Boton de cierre de corte)
+=======
+  }, [])
+>>>>>>> 2433cb5 (Eliminacion de mesas)
 
   //generador de pdf
   const generarPDFCorte =(datos,periodo)=>{
@@ -162,8 +169,11 @@ export default function Admin() {
   }  
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const guardarMesa = async () => {
 =======
+=======
+>>>>>>> 2433cb5 (Eliminacion de mesas)
   const procesarCerrarTurno =async() =>{
     if (!confirm(`¿Estás seguro de que deseas CERRAR EL TURNO para el período (${periodoReporte.toUpperCase()})? Esto descargará el reporte final del dia.`)) return
     try {
@@ -254,6 +264,7 @@ const guardarMesa = async () => {
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
+<<<<<<< HEAD
   
   const manejarCerrarTurnoYDescargarPDF = async () => {
     try{
@@ -271,6 +282,9 @@ const guardarMesa = async () => {
       toast('Error al cerrar turno', 'error');
     }
   }
+=======
+
+>>>>>>> 2433cb5 (Eliminacion de mesas)
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  
@@ -403,12 +417,17 @@ const guardarMesa = async () => {
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
 <<<<<<< HEAD
+<<<<<<< HEAD
                 <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
                   <CheckCircle2 size={28}  color="var(--primary)"/>
 =======
                 <div className={style.auditIconWrap}>
                   <CheckCircle2 size={28} />
 >>>>>>> 0618b31 (	Boton de cierre de corte)
+=======
+                <div className={style.auditIconWrap}>
+                  <CheckCircle2 size={28} />
+>>>>>>> 2433cb5 (Eliminacion de mesas)
                 </div>  
                 <div>
                 <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
@@ -425,6 +444,7 @@ const guardarMesa = async () => {
                 </button>
               </div>
 <<<<<<< HEAD
+<<<<<<< HEAD
               <div className={style.auditCard}>
                 <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
                   <LockIcon size={16} />
@@ -437,6 +457,12 @@ const guardarMesa = async () => {
                   Cerrar Turno (PDF)
                 </button>
 >>>>>>> 0618b31 (	Boton de cierre de corte)
+=======
+              <button className={style.auditButton} onClick={procesarCerrarTurno}>
+                  <LockIcon size={16} />
+                  Cerrar Turno (PDF)
+                </button>
+>>>>>>> 2433cb5 (Eliminacion de mesas)
             </div> 
         )}
 

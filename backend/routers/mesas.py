@@ -23,7 +23,7 @@ def normalizar_cadena_extrema(texto: str) -> str:
 
 @router.get("/", response_model=List[MesaOut])
 def listar_mesas(db: Session = Depends(get_db)):
-    return db.query(Mesa).all()
+    return db.query(Mesa).filter(Mesa.estado != "inactiva").all()
 
 
 @router.post("/", response_model=MesaOut)
@@ -88,7 +88,7 @@ async def eliminar_mesa(mesa_id: int, db: Session = Depends(get_db)):
     mesa = db.query(Mesa).filter(Mesa.id == mesa_id).first()
     if not mesa:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    db.delete(mesa)
+    mesa.estado = "inactiva" 
     db.commit()
     await manager.broadcast_all({"tipo": "mesa_eliminada", "mesa_id": mesa_id})
     return {"ok": True}
@@ -146,3 +146,4 @@ async def desbloquear_mesa(mesa_id: int, db: Session = Depends(get_db)):
             }
         })
     return {"ok": True}
+    return {"status": "success", "message": "Mesa desactivada correctamente"}
