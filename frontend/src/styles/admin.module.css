@@ -1152,7 +1152,6 @@ div:has(> .form-field) div:has(> .btn) {
   font-size: 0.95rem;
 }
 
-/* Modificadores o notas extras */
 .ordenProductoMod {
   font-size: 0.8rem;
   color: #6b7280;
@@ -1165,13 +1164,11 @@ div:has(> .form-field) div:has(> .btn) {
   align-items: center;
 }
 
-/* Clase de soporte para el badge gris/pendiente */
 .badge-gray {
   background-color: #e2e8f0;
   color: #475569;
 }
 
-/* Footer de la tarjeta con el Total acumulado */
 .ordenFooter {
   background: #f7f1e5;
   padding: 1rem 1.25rem;
@@ -1192,7 +1189,6 @@ div:has(> .form-field) div:has(> .btn) {
   color: #be5a24;
 }
 
-/* Estado vacío elegante cuando no hay órdenes */
 .ordenesEmptyWrap {
   text-align: center;
   padding: 4rem 2rem;
@@ -1207,4 +1203,54 @@ div:has(> .form-field) div:has(> .btn) {
   color: #ca6812;
   font-weight: 600;
   margin: 0;
+}
+
+.inventoryAlert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #fff1f2; /* Rojo/rosa muy suave */
+  border: 1px solid #fecdd3;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.5rem;
+  color: #9f1239; /* Texto guinda/rojo oscuro para legibilidad */
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.inventoryAlertIcon {
+  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+
+.textCenter {
+  text-align: center;
+}
+
+.btnAjustar {
+  background-color: #ffffff;
+  color: #ca6812; 
+  border: 1px solid #fcaf62;
+  padding: 0.45rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btnAjustar:hover {
+  background-color: #fcaf62;
+  color: #ffffff;
+  border-color: #fcaf62;
+  transform: translateY(-1px);
+}
+
+.btnAjustar:active {
+  transform: translateY(0);
 }
