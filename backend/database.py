@@ -74,6 +74,9 @@ def init_db():
             Producto(nombre="Kg de birria", precio=388.0, estacion="antojitos", stock=15),
             Producto(nombre="1/2 Kg de birria", precio=200.0, estacion="antojitos", stock=20),
             
+            Producto(nombre="Kg de tortilla", precio=26.00, estacion="antojitos", stock=15),
+            Producto(nombre="1/2 Kg de tortilla", precio=13.50, estacion="antojitos", stock=20),
+
             # --- BEBIDAS (image_92b19d.jpg) ---
             Producto(nombre="Café de olla", precio=30.0, estacion="antojitos", stock=100),
             Producto(nombre="Canela", precio=30.0, estacion="antojitos", stock=100),
@@ -128,7 +131,12 @@ def init_db():
                     Modificador(producto_id=prod_map[t], nombre="Con carne", tipo="variante", precio_extra=0.0),
                     Modificador(producto_id=prod_map[t], nombre="Sin carne", tipo="variante", precio_extra=0.0)
                 ])
-
+       
+        for prod_nombre, p_id in prod_map.items():
+            if "birria" in prod_nombre.lower() and "kg" not in prod_nombre.lower(): 
+                modificadores.append(
+                    Modificador(producto_id=p_id, nombre="Extra queso", tipo="extra", precio_extra=10.0, global_mod=True)
+                )
         db.add_all(modificadores)
 
     db.commit()

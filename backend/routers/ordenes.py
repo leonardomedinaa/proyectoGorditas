@@ -277,7 +277,12 @@ async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = De
         ).all()
     
     total = sum(i.precio_unitario * i.cantidad for orden in ordenes_abiertas for i in orden.items)
-
+    total_pagado = sum(pago_data.monto for pago_data in data.pagos)
+    if round(total_pagado, 2) != round(total, 2):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El monto total de los pagos (${total_pagado:.2f}) no coincide con el total de la cuenta (${total:.2f})."
+        )
     # Registrar pagos
     for pago_data in data.pagos:
         pago = Pago(orden_id=orden_id, metodo=pago_data.metodo, monto=pago_data.monto)
