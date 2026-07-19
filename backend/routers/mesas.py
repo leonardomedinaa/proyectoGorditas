@@ -84,7 +84,7 @@ async def actualizar_mesa(mesa_id: int, data: MesaUpdate, db: Session = Depends(
         "mesa": {"id": mesa.id, "nombre": mesa.nombre, "estado": mesa.estado, "capacidad": mesa.capacidad}
     })
     
-    return mesa # <--- ¡IMPORTANTE! Esto siempre debe ejecutarse
+    return mesa # 
 
 
 @router.delete("/{mesa_id}")
