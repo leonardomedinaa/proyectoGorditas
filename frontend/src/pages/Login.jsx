@@ -100,21 +100,8 @@ export default function Login() {
             </button>
 
             {errorLocal && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px', 
-                color: '#3b240e',
-                backgroundColor: '#ffebee',
-                padding: '0.8rem', 
-                borderRadius: '8px', 
-                marginTop: '1rem',
-                width: '100%',
-                fontSize: '0.95rem',
-                fontWeight: '500',
-                border: '1px solid #dcc6b1'
-              }}>
-                <AlertCircle size={18} color="#b05323" />
+              <div className={styles['alerta-error']}>
+                <AlertCircle size={18} color="var(--brand-primary)" />
                 <span>{errorLocal}</span>
               </div>
             )}

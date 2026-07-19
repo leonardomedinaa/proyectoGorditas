@@ -1,3 +1,61 @@
+/* PALETA DE COLORES - LAS TRES MARÍAS */
+:root {
+  /* Fondos Generales */
+  --bg-page: #f6efe2; /*Fondo afuera del cuadro*/
+  --bg-container: #fffaf3; /*Fondo del cuadro*/
+  --bg-card-neutral: #f7f1e5; /*Fondo de tarjetas*/
+  --bg-card-light: #fcf9f2; /*Cuadro de cobro, pedido de cada comensal*/
+  --bg-overlay: rgba(42, 34, 27, 0.4); /*Sombra de recuadro flotante*/
+
+  /* Textos */
+  --text-main: #4a3b32;  /*Título y subtitulo (contenedor general y cartas)*/
+  --text-secondary: #8a7665; /*subsubtitulo (cartas) XD*/
+  --text-muted: #655447; /*Palabras disponible, ordenando y ocupada al lado del título*/
+  --text-light: #ffffff; /*Palabras de botones, buscador, lista y ocupada, disponible y ordenando de cartas*/
+  --text-close-btn: #a08e7f;
+
+  /* Bordes y Líneas */
+  --border-light: #ebdcc5;
+  --border-neutral: #e1d3bc;
+  --border-dashed-light: rgba(225, 211, 188, 0.4);
+  --border-dashed-pago: rgba(225, 211, 188, 0.5);
+
+  /* Identidad Rústica / Acentos */
+  --color-primary: #be5a1c; /*Botones, remarcado, texto, etc*/
+  --color-primary-hover: #a44d16;
+  --color-primary-shadow: rgba(190, 90, 28, 0.2);
+  --color-primary-shadow-hover: rgba(190, 90, 28, 0.3);
+  --color-primary-alpha: rgba(190, 90, 28, 0.1);
+  --color-primary-alpha-deep: rgba(190, 90, 28, 0.12);
+  --color-primary-shadow-pendant: rgba(190, 90, 28, 0.15);
+
+  /* Estados de Mesas y Botones */
+  --color-disponible: #69beb0;
+  --color-ocupada: #db7a51;
+  --color-ordenando: #f7b500;
+  --color-cancelar-bg: #655447;
+  --color-cancelar-shadow: rgba(101, 84, 71, 0.2);
+  --color-danger: #ef4444;
+  --color-danger-hover: #b91c1c;
+  --color-danger-alpha: rgba(239, 68, 68, 0.08);
+  --color-disabled-text: #a79586;
+  
+  /* Comensales y Badges */
+  --bg-badge-blue: rgba(59, 130, 246, 0.1);
+  --text-badge-blue: #3b82f6;
+
+  /* Estaciones (Hardcoded en CSS por respaldo) */
+  --station-gorditas: #f59e0b;
+  --station-menudo: #3b82f6;
+  --station-antojitos: #22c55e;
+
+  /* Misceláneos / Sombras globales */
+  --shadow-main: rgba(74, 59, 50, 0.05);
+  --shadow-modal: rgba(74, 59, 50, 0.12);
+  --shadow-control: rgba(74, 59, 50, 0.08);
+  --shadow-btn-mini: rgba(74, 59, 50, 0.02);
+}
+
 /* CONTENEDOR PRINCIPAL FLOTANTE */
 
 .page .content { 
@@ -7,16 +65,16 @@
   min-height: calc(100vh - 91px);
   overflow-y: auto; 
   padding: 2rem 2rem 3rem 2rem;
-  background-color: #f6efe2;
+  background-color: var(--bg-page);
   box-sizing: border-box;
 }
 
 .page .main-container {
-  background-color: #fffaf3;
-  border: 1px solid #ebdcc5;
+  background-color: var(--bg-container);
+  border: 1px solid var(--border-light);
   border-radius: 1.5rem;
   padding: 2.5rem 2rem;
-  box-shadow: 0 10px 30px rgba(74, 59, 50, 0.05);
+  box-shadow: 0 10px 30px var(--shadow-main);
   margin: 0 auto;
   max-width: 1400px;
   width: 100%;
@@ -47,7 +105,7 @@
 
 .page .mapa-header h1 {
   font-size: 2.2rem;
-  color: #4a3b32;
+  color: var(--text-main);
   font-weight: 600;
   margin: 0;
 }
@@ -64,7 +122,7 @@
   gap: 0.5rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #655447;
+  color: var(--text-muted);
 }
 
 .page .dot {
@@ -72,8 +130,8 @@
   height: 12px;
   border-radius: 50%;
 }
-.page .dot.disponible { background-color: #69beb0; }
-.page .dot.ocupada { background-color: #db7a51; }
+.page .dot.disponible { background-color: var(--color-disponible); }
+.page .dot.ocupada { background-color: var(--color-ocupada); }
 
 .page .header-controls {
   display: flex;
@@ -89,24 +147,24 @@
   align-items: center;
   gap: 0.5rem;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(74, 59, 50, 0.08);
+  box-shadow: 0 4px 6px var(--shadow-control);
   cursor: pointer;
 }
 
 .page .btn-cancelar {
-  background-color: #655447 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(101, 84, 71, 0.2) !important;
+  background-color: var(--color-cancelar-bg) !important;
+  color: var(--text-light) !important;
+  box-shadow: 0 4px 12px var(--color-cancelar-shadow) !important;
 }
 
 .page .btn-cancelar:hover {
-  background-color: #4a3b32 !important;
+  background-color: var(--text-main) !important;
 }
 
 /* MODO COBRO ACTIVO EN LA MESA */
 .page .mesa-card.mesa-cobro-pendiente {
-  border: 2px solid #be5a1c !important;
-  box-shadow: inset 0 0 12px rgba(190, 90, 28, 0.12), 0 4px 12px rgba(190, 90, 28, 0.15) !important;
+  border: 2px solid var(--color-primary) !important;
+  box-shadow: inset 0 0 12px var(--color-primary-alpha-deep), 0 4px 12px var(--color-primary-shadow-pendant) !important;
 }
 
 /* GRID Y TARJETAS DE LAS MESAS */
@@ -117,9 +175,48 @@
   gap: 1.5rem; 
 }
 
+.page .mesa-body .mesa-icon {
+  font-size: 2.25rem; /* Equivalente a 36px */
+}
+
+.page .mesa-orden-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.25rem;
+  gap: 2px;
+}
+
+.page .mesa-orden-items {
+  font-size: 0.7rem; /* Equivalente a 11px */
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.page .mesa-orden-total {
+  font-size: 0.875rem; /* Equivalente a 14px */
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.page .mesa-card.ordenando .mesa-estado-block,
+.page .mesa-estado-block.mesa-estado-ordenando {
+  background-color: var(--station-gorditas);
+  color: var(--text-light);
+}
+
+.page .mesa-card.mesa-deshabilitada {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page .mesa-card.mesa-ordenando-dashed {
+  border: 2px dashed var(--station-gorditas) !important;
+}
+
 .page .mesa-card { 
-  background-color: #f7f1e5;
-  border: 2px solid #e1d3bc;
+  background-color: var(--bg-card-neutral);
+  border: 2px solid var(--border-neutral);
   border-radius: 1.2rem; 
   display: flex; 
   flex-direction: column; 
@@ -128,13 +225,35 @@
   cursor: pointer; 
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 4px 12px rgba(74, 59, 50, 0.03);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 4px 12px var(--shadow-main);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
 }
 
 .page .mesa-card:hover { 
   transform: translateY(-5px); 
-  box-shadow: 0 8px 20px rgba(74, 59, 50, 0.08);
+  box-shadow: 0 8px 20px var(--shadow-control);
+}
+
+/* --- ESTADO OCUPADA --- */
+/* 1. El borde de la tarjeta se vuelve naranja-rojizo al estar ocupada */
+.page .mesa-card.ocupada {
+  border-color: var(--color-ocupada) !important;
+}
+
+/* 2. La franja inferior cambia automáticamente a su color correspondiente */
+.page .mesa-card.ocupada .mesa-estado-block {
+  background-color: var(--color-ocupada) !important;
+  color: var(--text-light) !important;
+}
+
+/* --- ESTADO ORDENANDO (Para comparar) --- */
+.page .mesa-card.ordenando {
+  border: 2px dashed var(--color-ordenando) !important;
+}
+
+.page .mesa-card.ordenando .mesa-estado-block {
+  background-color: var(--color-ordenando) !important;
+  color: var(--text-light) !important;
 }
 
 .page .mesa-body {
@@ -148,19 +267,19 @@
 .page .mesa-body svg, .page .mesa-body img {
   width: 42px;
   height: 42px;
-  color: #655447;
+  color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
 
 .page .mesa-nombre { 
   font-weight: 600; 
   font-size: 1.3rem;
-  color: #4a3b32;
+  color: var(--text-main);
 }
 
 .page .mesa-capacidad {
   font-size: 0.95rem;
-  color: #8a7665;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -172,26 +291,26 @@
   text-transform: uppercase; 
   font-weight: 700; 
   letter-spacing: 0.5px;
-  color: #ffffff;
+  color: var(--text-light);
 }
 
 .page .mesa-card.disponible .mesa-estado-block {
-  background-color: #69beb0;
+  background-color: var(--color-disponible);
 }
 
 .page .mesa-card.ocupada .mesa-estado-block {
-  background-color: #db7a51;
+  background-color: var(--color-ocupada);
 }
 
-.page .mesa-card.disponible:hover { border-color: #69beb0; }
-.page .mesa-card.ocupada:hover { border-color: #db7a51; }
+.page .mesa-card.disponible:hover { border-color: var(--color-disponible); }
+.page .mesa-card.ocupada:hover { border-color: var(--color-ocupada); }
 
 /* MODALES, MENU Y CARRITO DE COMPRAS */
 
 .page .modal-overlay { 
   position: fixed; 
   top: 0; left: 0; right: 0; bottom: 0; 
-  background-color: rgba(42, 34, 27, 0.4); 
+  background-color: var(--bg-overlay); 
   backdrop-filter: blur(4px); 
   display: flex; 
   align-items: center; 
@@ -200,15 +319,15 @@
 }
 
 .page .modal { 
-  background-color: #fffaf3; 
-  border: 1px solid #ebdcc5;
+  background-color: var(--bg-container); 
+  border: 1px solid var(--border-light);
   border-radius: 1.5rem; 
   padding: 2.5rem; 
-  box-shadow: 0 20px 40px rgba(74, 59, 50, 0.12);
+  box-shadow: 0 20px 40px var(--shadow-modal);
 }
 
 .page .modal p {
-  color: #8a7665;
+  color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 1rem;
@@ -216,7 +335,7 @@
 
 .page .modal h2 {
   font-size: 1.8rem;
-  color: #4a3b32;
+  color: var(--text-main);
   font-weight: 600;
   margin: 0;
 }
@@ -228,22 +347,22 @@
   align-items: center;
   width: 100%;
   padding: 1rem 1.25rem;
-  background-color: #ffffff;
-  border: 1px solid #e1d3bc;
+  background-color: var(--text-light);
+  border: 1px solid var(--border-neutral);
   border-radius: 0.75rem;
-  color: #4a3b32;
+  color: var(--text-main);
   font-family: inherit;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(74, 59, 50, 0.02);
+  box-shadow: 0 2px 4px var(--shadow-btn-mini);
 }
 
 .page .variante-item-btn:hover {
-  background-color: #fcf9f2;
-  border-color: #be5a1c;
-  color: #be5a1c;
+  background-color: var(--bg-card-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   transform: scale(1.02);
 }
 
@@ -263,7 +382,7 @@
 .page .modal .sep + p {
   margin-top: 1rem;
   font-weight: 600;
-  color: #655447;
+  color: var(--text-muted);
 }
 
 .page .chip { 
@@ -271,22 +390,22 @@
   border-radius: 9999px; 
   font-size: 0.9rem; 
   font-weight: 600;
-  color: #8a7665;
-  background-color: #f7f1e5;
-  border: 1px solid #e1d3bc;
+  color: var(--text-secondary);
+  background-color: var(--bg-card-neutral);
+  border: 1px solid var(--border-neutral);
   cursor: pointer; 
   transition: all 0.2s ease;
 }
 
 .page .chip:hover {
-  background-color: #ebdcc5;
-  color: #4a3b32;
+  background-color: var(--border-light);
+  color: var(--text-main);
 }
 
 .page .chip.active {
-  background-color: #be5a1c !important;
-  border-color: #be5a1c !important;
-  color: #ffffff !important;
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--text-light) !important;
 }
 
 /* INPUT DE BUSQUEDA */
@@ -294,56 +413,72 @@
   font-family: inherit;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  border: 1px solid #e1d3bc;
-  background-color: #ffffff;
-  color: #4a3b32;
+  border: 1px solid var(--border-neutral);
+  background-color: var(--text-light);
+  color: var(--text-main);
   font-size: 0.95rem;
   transition: border-color 0.2s ease;
 }
 
 .page input:focus {
   outline: none;
-  border-color: #be5a1c;
-  box-shadow: 0 0 0 3px rgba(190, 90, 28, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha);
 }
 
 /* TARJETAS DE PRODUCTOS EN EL MENU */
+page .modal-orden-grid div[style*="flex: 1"][style*="gridTemplateColumns: 1fr 1fr"],
+.page .modal-orden-grid div[style*="gridTemplateColumns: 1fr 1fr"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  gap: 12px !important;
+  grid-auto-rows: 1fr;
+  align-content: start;
+}
+
 .page .prod-card { 
-  background-color: #f7f1e5;
-  border: 1px solid #e1d3bc;
+  background-color: var(--bg-card-neutral);
+  border: 1px solid var(--border-neutral);
   border-radius: 1rem; 
-  padding: 1.25rem; 
+  padding: 1.15rem; 
   cursor: pointer; 
   display: flex; 
   flex-direction: column; 
   justify-content: space-between;
-  gap: 0.5rem; 
+  gap: 0.75rem; 
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  min-width: 0;
+  height: 100%; 
+  box-sizing: border-box;
 }
 
 .page .prod-card:hover {
-  transform: translateY(-3px);
-  border-color: #ebdcc5;
-  box-shadow: 0 6px 15px rgba(74, 59, 50, 0.05);
+  border-color: var(--border-light);
+  box-shadow: 0 6px 15px var(--shadow-main);
 }
 
 .page .prod-card-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: flex-start;
   width: 100%;
+  gap: 0.25rem;
 }
 
 .page .prod-nombre { 
   font-weight: 600; 
-  font-size: 1.1rem;
-  color: #4a3b32;
+  font-size: 1.05rem;
+  color: var(--text-main);
+  line-height: 1.3;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .page .prod-precio { 
   font-weight: 700; 
   font-size: 1.1rem;
-  color: #be5a1c;
+  color: var(--color-primary);
+  margin-top: 0.25rem;
 }
 
 .page .prod-estacion {
@@ -354,8 +489,8 @@
 
 /* EL CONTENEDOR DEL CARRITO */
 .page .carrito-container {
-  background-color: #f7f1e5; 
-  border: 1px solid #e1d3bc; 
+  background-color: var(--bg-card-neutral); 
+  border: 1px solid var(--border-neutral); 
   border-radius: 1.25rem; 
   padding: 1.5rem; 
 }
@@ -368,8 +503,8 @@
 }
 
 .page .badge-blue {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background-color: var(--bg-badge-blue);
+  color: var(--text-badge-blue);
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -380,19 +515,19 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: #ffffff;
-  border: 1px solid #e1d3bc;
+  background-color: var(--text-light);
+  border: 1px solid var(--border-neutral);
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
-  box-shadow: 0 2px 4px rgba(74, 59, 50, 0.02);
+  box-shadow: 0 2px 4px var(--shadow-btn-mini);
 }
 
 .page .qty-btn {
   width: 28px;
   height: 28px;
   border-radius: 0.375rem;
-  background-color: #f7f1e5;
-  color: #4a3b32;
+  background-color: var(--bg-card-neutral);
+  color: var(--text-main);
   border: none;
   font-size: 1.1rem;
   font-weight: 700;
@@ -406,7 +541,7 @@
 .page .qty-ctrl span {
   font-size: 1rem;
   font-weight: 700;
-  color: #4a3b32;
+  color: var(--text-main);
   min-width: 18px;
   text-align: center;
 }
@@ -414,7 +549,7 @@
 .page .carrito-item .btn-quitar {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--color-danger);
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
@@ -428,8 +563,8 @@
 }
 
 .page .carrito-item .btn-quitar:hover {
-  color: #b91c1c;
-  background-color: rgba(239, 68, 68, 0.08);
+  color: var(--color-danger-hover);
+  background-color: var(--color-danger-alpha);
   transform: scale(1.03);
 }
 
@@ -437,22 +572,22 @@
   font-size: 0.85rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid #e1d3bc;
-  background-color: #ffffff;
+  border: 1px solid var(--border-neutral);
+  background-color: var(--text-light);
 }
 
 .page .qty-btn:hover {
-  background-color: #be5a1c;
-  color: #684a31;
+  background-color: var(--color-primary);
+  color: #684a31; /* Tono café oscuro específico para el contraste del texto del botón activo */
 }
 
 .page .carrito-container strong {
-  color: #4a3b32;
+  color: var(--text-main);
 }
 
 .page .sep { 
   height: 1px; 
-  background-color: #e1d3bc;
+  background-color: var(--border-neutral);
   margin: 1.25rem 0; 
 }
 
@@ -496,7 +631,7 @@
   justify-content: space-between !important;
   width: 100% !important;
   padding: 0.6rem 0.25rem !important;
-  border-bottom: 1px dashed rgba(225, 211, 188, 0.4) !important;
+  border-bottom: 1px dashed var(--border-dashed-light) !important;
   box-sizing: border-box !important;
   flex-wrap: wrap !important;
   gap: 0.5rem !important;
@@ -577,7 +712,7 @@
 
 .page .modal-orden-header h2 {
   font-size: 1.6rem;
-  color: #4a3b32;
+  color: var(--text-main);
   font-weight: 600;
   margin: 0;
 }
@@ -599,7 +734,7 @@
 
 .page .modal-pago-header h2 {
   font-size: 1.6rem;
-  color: #4a3b32;
+  color: var(--text-main);
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
@@ -612,7 +747,7 @@
   background: none;
   background-color: transparent;
   border: none;
-  color: #a08e7f;
+  color: var(--text-close-btn);
   font-size: 1.1rem;
   font-weight: 300;
   cursor: pointer;
@@ -630,37 +765,37 @@
 
 .page .btn-cerrar-fino:hover {
   background-color: rgba(74, 59, 50, 0.06);
-  color: #4a3b32;
+  color: var(--text-main);
 }
 
 .page .comensal-block-cuenta {
-  background-color: #fcf9f2;
-  border: 1px solid #e1d3bc;
+  background-color: var(--bg-card-light);
+  border: 1px solid var(--border-neutral);
   border-radius: 0.75rem;
   margin-bottom: 1rem;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(74, 59, 50, 0.02);
+  box-shadow: 0 2px 6px var(--shadow-btn-mini);
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
 .page .comensal-block-header {
-  background-color: #f1ebd9;
+  background-color: #f1ebd9; /* Mantengo este tono rústico que hace un excelente match con el header de la cuenta */
   padding: 0.6rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
-  color: #4a3b32;
+  color: var(--text-main);
   font-size: 0.95rem;
-  border-bottom: 1px solid #e1d3bc;
+  border-bottom: 1px solid var(--border-neutral);
   width: 100%;
   box-sizing: border-box;
 }
 
 .page .comensal-block-header .subtotal-txt {
-  color: #be5a1c;
+  color: var(--color-primary);
 }
 
 .page .comensal-block-body {
@@ -677,8 +812,8 @@
   align-items: center;
   padding: 0.4rem 0;
   font-size: 0.9rem;
-  color: #655447;
-  border-bottom: 1px dashed rgba(225, 211, 188, 0.5);
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--border-dashed-pago);
   width: 100%;
 }
 
@@ -687,13 +822,13 @@
 }
 
 .page .item-line-qty {
-  color: #be5a1c;
+  color: var(--color-primary);
   margin-right: 2px;
 }
 
 .page .item-line-precio {
   font-weight: 600;
-  color: #4a3b32;
+  color: var(--text-main);
 }
 
 /* Bloque del Total General */
@@ -702,8 +837,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background-color: #f7f1e5;
-  border: 2px solid #be5a1c;
+  background-color: var(--bg-card-neutral);
+  border: 2px solid var(--color-primary);
   border-radius: 0.75rem;
   margin-top: 1.25rem;
 }
@@ -711,19 +846,19 @@
 .page .cuenta-total-general-box span {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #4a3b32;
+  color: var(--text-main);
 }
 
 .page .cuenta-total-general-box strong {
   font-size: 1.4rem;
   font-weight: 800;
-  color: #be5a1c;
+  color: var(--color-primary);
 }
 
 .page .btn-agregar-pago-util {
   background: none;
-  border: 1px dashed #be5a1c;
-  color: #be5a1c;
+  border: 1px dashed var(--color-primary);
+  color: var(--color-primary);
   font-family: inherit;
   font-weight: 600;
   font-size: 0.9rem;
@@ -757,16 +892,16 @@
   border-radius: 0.75rem;
   border: none;
   cursor: pointer;
-  background-color: #e1d3bc; 
-  color: #655447;
+  background-color: var(--border-light); 
+  color: var(--text-muted);
   transition: all 0.2s ease;
   display: inline-block;
   text-align: center;
 }
 
 .page .modal-pago-footer .btn-cancelar:hover {
-  background-color: #ebdcc5;
-  color: #4a3b32;
+  background-color: var(--border-light);
+  color: var(--text-main);
 }
 
 .page .modal-pago-footer .btn-confirmar {
@@ -778,22 +913,21 @@
   border-radius: 0.75rem;
   border: none;
   cursor: pointer;
-  background-color: #be5a1c; 
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(190, 90, 28, 0.15);
+  background-color: var(--color-primary); 
+  color: var(--text-light);
+  box-shadow: 0 4px 12px var(--color-primary-shadow-pendant);
   transition: all 0.2s ease;
   display: inline-block;
   text-align: center;
 }
 
 .page .modal-pago-footer .btn-confirmar:hover {
-  background-color: #a44d16;
+  background-color: var(--color-primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(190, 90, 28, 0.25);
 }
 
-/*Botones meseros*/
-/* BOTONES DE ACCION */
+/* BOTONES DE ACCION GENERICA */
 .page .btn {
   display: inline-flex;
   align-items: center;
@@ -811,15 +945,15 @@
 
 /* El boton naranja cuando tiene items listos */
 .page .btn-primary {
-  background-color: #be5a1c;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(190, 90, 28, 0.2);
+  background-color: var(--color-primary);
+  color: var(--text-light);
+  box-shadow: 0 4px 12px var(--color-primary-shadow);
 }
 
 .page .btn-primary:not(:disabled):hover {
-  background-color: #a44d16;
+  background-color: var(--color-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(190, 90, 28, 0.3);
+  box-shadow: 0 6px 16px var(--color-primary-shadow-hover);
 }
 
 .page .btn-primary:not(:disabled):active {
@@ -828,13 +962,14 @@
 
 /* ESTADO DESHABILITADO */
 .page .btn:disabled {
-  background-color: #ebdcc5;
-  color: #a79586;
+  background-color: var(--border-light);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
   box-shadow: none;
   transform: none !important;
 }
 
+/* MEDIA QUERIES (Se mantienen las estructuras intactas heredando variables) */
 @media (min-width: 577px) and (max-width: 992px) {
   .page .content {
     padding: 1.5rem !important;
@@ -883,26 +1018,6 @@
     margin: 0 auto !important;    
   }
 
-  .page .content {
-    padding: 1.5rem !important;
-    height: calc(100vh - 91px) !important;
-    overflow: hidden !important; 
-    display: flex;
-    align-items: center;       
-    justify-content: center;   
-    box-sizing: border-box;
-  }
-
-  .page .main-container {
-    height: calc(100% - 2rem) !important; 
-    min-height: auto !important; 
-    padding: 1.5rem !important;
-    width: 94vw !important;     
-    margin: 0 auto !important;  
-    box-sizing: border-box;
-    overflow: hidden !important;
-  }
-
   .page .modal-orden-grid {
     grid-template-columns: 1fr !important;
     display: flex !important;
@@ -911,34 +1026,22 @@
     gap: 16px !important;
   }
 
-  /* Contenedor del Menu (Productos) */
   .page .modal-orden-grid > div:first-child {
     height: 33vh !important; 
   }
 
-  /* Tarjetas de comida en 2 columnas internas */
   .page .modal-orden-grid div[style*="gridTemplateColumns: 1fr 1fr"] {
     grid-template-columns: 1fr 1fr !important; 
     gap: 10px !important;
   }
 
-  /* Contenedor del Carrito */
   .page .modal-orden-grid > div:last-child {
     height: 42vh !important;
   }
-
-  .page .mesa-scroll-wrapper {
-    flex: 1;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    height: calc(100vh - 290px) !important; 
-    display: block !important;
-  }
 }
 
-/* ── PARA CELULARES ── */
+/* CELULARES */
 @media (max-width: 576px) {
-
   .page .content {
     padding: 1rem !important; 
     height: calc(100vh - 91px) !important;
@@ -986,9 +1089,6 @@
     font-size: 1.5rem !important;
   }
 
-
-  /*EL MODAL DE NUEVA ORDEN*/
-
   .page .modal {
     padding: 1rem !important;
     width: 96vw !important;
@@ -1027,19 +1127,14 @@
     appearance: select !important;
   }
 
-  /* ── REAJUSTE DE ALTURAS PARA EL CELULAR ── */
-
-  /* Contenedor del Menu (Productos) */
   .page .modal-orden-grid > div:first-child {
     height: 30vh !important; 
   }
 
-  /* Una sola tarjeta de comida por fila en pantallas reducidas */
   .page .modal-orden-grid div[style*="gridTemplateColumns: 1fr 1fr"] {
     grid-template-columns: 1fr !important; 
   }
 
-  /* Contenedor del Carrito (Abajo) */
   .page .modal-orden-grid > div:last-child {
     height: 42vh !important; 
   }

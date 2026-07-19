@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Power, User } from 'lucide-react' 
 import styles from '../styles/topbar.module.css'
-//import logoRestaurante from '../assets/restaurante.png'
 
-export default function Topbar({ tab, setTab, tabs }) {
+export default function Topbar({ tab, setTab, tabs, children, esCocina }) {
   const { user, logout } = useAuth()
   const [showName, setShowName] = useState(false)
 
@@ -27,17 +26,24 @@ export default function Topbar({ tab, setTab, tabs }) {
         </nav>
       )}
 
-      {/*<img src={logoRestaurante} className={styles['topbar-logo']} alt="Las tres Marías"/>*/}
+      {children && (
+        <div className={styles['topbar-center-content']}>
+          {children}
+        </div>
+      )}
+
 
       <div className={styles['topbar-user-section']}>
-        <div 
-          className={`${styles.user} ${showName ? styles.active : ''}`}
-          onClick={() => setShowName(!showName)}
-          style={{cursor: 'pointer'}}
-        >
-          <User className={styles['user-avatar-icon']} />
-          <span>{user?.nombre}</span>
-        </div>
+        {!esCocina && (
+          <div 
+            className={`${styles.user} ${showName ? styles.active : ''}`}
+            onClick={() => setShowName(!showName)}
+            style={{cursor: 'pointer'}}
+          >
+            <User className={styles['user-avatar-icon']} />
+            <span>{user?.nombre}</span>
+          </div>
+        )}
         
         <button className={styles['btn-salir-minimal']} onClick={logout}>
           <Power className={styles['salir-icon']} />

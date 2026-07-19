@@ -6,7 +6,6 @@ import Topbar from '../components/Topbar'
 import styles from '../styles/cocina.module.css'
 import { Volume2, VolumeX, RefreshCw, CheckCircle } from 'lucide-react'
 
-// Mapeo de nombre de usuario a estacion
 function estacionDeUsuario(nombre) {
   const n = nombre.toLowerCase()
   if (n.includes('gordita')) return 'gorditas'
@@ -16,7 +15,7 @@ function estacionDeUsuario(nombre) {
 }
 
 export default function Cocina() {
-  const { user, logout } = useAuth() 
+  const { user } = useAuth() 
   const toast = useToast()
   const estacion = estacionDeUsuario(user.nombre)
 
@@ -53,11 +52,9 @@ export default function Cocina() {
         cargar()
       }
     })
-    // Actualización automática de respaldo cada 5 segundos
     const intervalo = setInterval(() => {
       cargar()
     }, 5000)
-    // Limpieza al salir de la pantalla
     return () => {
       unsub()
       clearInterval(intervalo)
@@ -71,7 +68,6 @@ export default function Cocina() {
     } catch (e) { toast(e.message, 'error') }
   }
 
-  // Agrupar items por orden
   const porOrden = items.reduce((acc, item) => {
     const key = item.orden_id
     if (!acc[key]) acc[key] = { orden_id: item.orden_id, mesa: item.mesa, items: [] }
@@ -87,7 +83,11 @@ export default function Cocina() {
     antojitos: '🌮 Estación Antojitos',
   }
 
-  // Si no hay estación asignada
+  const capitalizar = (texto) => {
+    if (!texto) return ''
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase()
+  }
+
   if (!estacion) {
     return (
       <div className={styles.page}>
@@ -102,37 +102,36 @@ export default function Cocina() {
   return (
     <div className={styles.page}>
       
-      {/* Topbar local de controles para la Cocina */}
-      <div className={styles.topbar}>
-        <span className={styles['topbar-brand']}>{TITULO[estacion]}</span>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginLeft: 'auto' }}>
+      <Topbar esCocina={true}>
+        <span style={{ 
+          color: 'var(--topbar-text)', 
+          fontSize: 'clamp(0.95rem, 3.5vw, 1.25rem)',
+          fontWeight: 700,
+          whiteSpace: 'nowrap'
+        }}>
+          {TITULO[estacion]}
+        </span>
+        
+        <div className={styles['topbar-controls-cocina']}>
           <button
             className={`${styles.btn} ${styles['btn-sm']} ${sonido ? styles['btn-primary'] : styles['btn-ghost']}`}
             onClick={() => setSonido(s => !s)}
             title={sonido ? 'Silenciar notificaciones' : 'Activar notificaciones'}
           >
             {sonido ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            {sonido ? 'Sonido ON' : 'Sonido OFF'}
+            <span>{sonido ? 'Sonido ON' : 'Sonido OFF'}</span>
           </button>
           
           <button className={`${styles.btn} ${styles['btn-ghost']} ${styles['btn-sm']}`} onClick={cargar} title="Recargar comandas">
             <RefreshCw size={16} />
-            Actualizar
+            <span>Actualizar</span>
           </button>
           
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500, backgroundColor: 'rgba(30, 64, 175, 0.1)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
-            {grupos.length} orden(es)
+          <span className={styles['ordenes-badge-cocina']}>
+            {grupos.length} <span className={styles['ordenes-text-hide']}>orden(es)</span>
           </span>
-
-          <button 
-            className={`${styles.btn} ${styles['btn-error']} ${styles['btn-sm']}`}
-            onClick={logout}
-            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span>🖲️</span> Salir
-          </button>
         </div>
-      </div>
+      </Topbar>
 
       <div className={styles.content}>
         {grupos.length === 0 ? (
@@ -142,7 +141,7 @@ export default function Cocina() {
             <p style={{ color: 'var(--text-secondary)' }}>Las nuevas comandas aparecerán aquí automáticamente</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gridAutoRows: 'min-content', gap: '1.75rem', justifyContent: 'center' }}>
             {grupos.map(grupo => (
               <div key={grupo.orden_id} className={styles['comanda-card']}>
                 
@@ -151,45 +150,49 @@ export default function Cocina() {
                   <span style={{ color: 'var(--text2)', fontSize: 12 }}>Orden #{grupo.orden_id}</span>
                 </div>
                 
-                {grupo.items.map(item => (
-                  <div key={item.item_id} className={styles['comanda-item']}>
-                    <span className={styles.qty}>{item.cantidad}</span>
-                    
-                    <div className={styles.info}>
-                      <div className={styles.nombre}>{item.producto}</div>
-                      {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
-                      {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-                      <span className={`${styles.badge} ${
-                        item.estado_cocina === 'listo' ? styles['badge-success'] :
-                        item.estado_cocina === 'preparando' ? styles['badge-warning'] : styles['badge-gray']
-                      }`}>
-                        {item.estado_cocina === 'listo' && '✓ '}
-                        {item.estado_cocina === 'preparando' && '⏱ '}
-                        {item.estado_cocina === 'pendiente' && '⭕ '}
-                        {item.estado_cocina}
-                      </span>
+                <div className={styles['comanda-body-scroll']}>
+                  {grupo.items.map(item => (
+                    <div key={item.item_id} className={styles['comanda-item']}>
+                      <span className={styles.qty}>{item.cantidad}</span>
                       
-                      {item.estado_cocina === 'pendiente' && (
-                        <button className={`${styles.btn} ${styles['btn-primary']} ${styles['btn-sm']}`}
-                          onClick={() => cambiarEstado(item.orden_id, item.item_id, 'preparando')}>
-                          Preparando
-                        </button>
-                      )}
+                      <div className={styles.info}>
+                        <div className={styles.nombre}>{item.producto}</div>
+                        {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
+                        {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
+                      </div>
                       
-                      {item.estado_cocina === 'preparando' && (
-                        <button className={`${styles.btn} ${styles['btn-success']} ${styles['btn-sm']}`}
-                          onClick={() => cambiarEstado(item.orden_id, item.item_id, 'listo')}>
-                          <CheckCircle size={14} />
-                          Listo
-                        </button>
-                      )}
+                      <div className={styles['comanda-actions']}>
+                        <span className={`${styles.badge} ${
+                          item.estado_cocina === 'listo' ? styles['badge-success'] :
+                          item.estado_cocina === 'preparando' ? styles['badge-warning'] : styles['badge-gray']
+                        }`}>
+                          {item.estado_cocina === 'listo' && '✓ '}
+                          {item.estado_cocina === 'preparando' && '⏱ '}
+                          {item.estado_cocina === 'pendiente' && '⭕ '}
+                          {capitalizar(item.estado_cocina)}
+                        </span>
+                        
+                        <div className={styles['btn-container']}>
+                          {item.estado_cocina === 'pendiente' && (
+                            <button className={`${styles.btn} ${styles['btn-primary']} ${styles['btn-sm']}`}
+                              onClick={() => cambiarEstado(item.orden_id, item.item_id, 'preparando')}>
+                              Preparando
+                            </button>
+                          )}
+                          
+                          {item.estado_cocina === 'preparando' && (
+                            <button className={`${styles.btn} ${styles['btn-success']} ${styles['btn-sm']}`}
+                              onClick={() => cambiarEstado(item.orden_id, item.item_id, 'listo')}>
+                              <CheckCircle size={14} />
+                              Listo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
                     </div>
-                    
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             ))}
           </div>
