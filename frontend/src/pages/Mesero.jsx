@@ -385,18 +385,6 @@ export default function Mesero() {
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <strong style={{ color: 'var(--color-primary)', fontSize: '16px' }}>${orden.total.toFixed(2)}</strong>
-                        <button 
-                          className={`${styles.btn} ${styles['btn-primary']} btn-sm`} 
-                          onClick={() => {
-                            if(!verificarTodoListo(orden)){
-                              toast('Cocina aún no termina el pedido', 'warning')
-                              return
-                            }
-                            abrirPago(orden)
-                          }}
-                        >
-                          Cobrar
-                        </button>
                       </div>
                     </div>
                     
