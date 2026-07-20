@@ -9,15 +9,15 @@ import jsPDF from 'jspdf'
 import { 
   AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
-  ArrowUpRight, LayoutDashboard, Lock as LockIcon 
+  ArrowUpRight,LayoutDashboard,Lock as LockIcon
 } from 'lucide-react'
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'mesas',     label: 'Mesas',     icon: '🪑' },
-  { id: 'productos', label: 'Productos',  icon: '🍽️' },
-  { id: 'ordenes',   label: 'Órdenes',   icon: '📋' },
-  { id: 'inventario',label: 'Inventario', icon: '📦' },
+  { id: 'dashboard', label: 'Dashboard', icon: '??' },
+  { id: 'mesas',     label: 'Mesas',     icon: '??' },
+  { id: 'productos', label: 'Productos',  icon: '???' },
+  { id: 'ordenes',   label: 'Órdenes',   icon: '??' },
+  { id: 'inventario',label: 'Inventario', icon: '??' },
 ]
 
 const COLORES_PIE = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444']
@@ -43,13 +43,14 @@ export default function Admin() {
 
   const cargarTodo = useCallback(async () => {
     try {
-      const [m, p, o, a] = await Promise.all([
+      const [m, p, o, a,r] = await Promise.all([
         api.get('/mesas/'),
         api.get('/productos/todos'),
         api.get('/ordenes/'),
         api.get('/productos/alertas-stock'),
+        api.get('/reportes/dia')
       ])
-      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a)
+      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
     } catch { toast('Error al cargar datos', 'error') }
   }, [toast])
 
@@ -57,7 +58,7 @@ export default function Admin() {
     cargarTodo()
     const unsub = createWS('admin', msg => {
       if (msg.tipo === 'alerta_stock') {
-        toast(`⚠️ Stock bajo: ${msg.producto_nombre} (${msg.stock} uds.)`, 'warning', 6000)
+        toast(`?? Stock bajo: ${msg.producto_nombre} (${msg.stock} uds.)`, 'warning', 6000)
         setAlertas(prev => {
           const exists = prev.find(a => a.id === msg.producto_id)
           if (exists) return prev.map(a => a.id === msg.producto_id ? { ...a, stock: msg.stock } : a)
@@ -70,24 +71,23 @@ export default function Admin() {
       }
     })
     return unsub
-  }, [cargarTodo, toast])
+  }, [cargarTodo])
 
-  // Generador de PDF
-  const generarPDFCorte = (datos, periodo) => {
-    const doc = new jsPDF()
-    const labelPeriodo = periodo === 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
-    const resumenArray = datos.resumen || []
-    const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta')
-    const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia')
+  //generador de pdf
+  const generarPDFCorte =(datos,periodo)=>{
+    const doc=new jsPDF()
+    const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
+    const resumenArray = datos.resumen || [];
+    const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta');
+    const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia');
 
-    const efectivo = datos.efectivo_esperado || 0
-    const tarjeta = tarjetaObj ? tarjetaObj.total : (datos.pagos_tarjeta || 0)
-    const transferencia = transferenciaObj ? transferenciaObj.total : (datos.pagos_transferencia || 0)
-    const totalGeneral = datos.total_general || 0
-
-    doc.setFillColor(31, 41, 55)
-    doc.rect(0, 0, 210, 35, 'F')
-    doc.setFont("helvetica", "bold")
+    const efectivo = datos.efectivo_esperado || 0;
+    const tarjeta = tarjetaObj ? tarjetaObj.total : 0;
+    const transferencia = transferenciaObj ? transferenciaObj.total : 0;
+    const totalGeneral = datos.total_general || 0;
+    doc.setFillColor(31,41,55)
+    doc.rect(0,0,210,35,'F')
+    doc.setFont("helvetica","bold")
     doc.setFontSize(22)
     doc.setTextColor(255, 255, 255)
     doc.text("LAS TRES MARIAS", 15, 15)
@@ -114,19 +114,19 @@ export default function Admin() {
     
     doc.setFont("helvetica", "normal")
     doc.text("Efectivo Esperado en Caja:", 22, 83)
-    doc.text(`$${efectivo.toFixed(2)}`, 150, 83)
+    doc.text(`$${(efectivo).toFixed(2)}`, 150, 83)
     
     doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
     doc.text(`$${tarjeta.toFixed(2)}`, 150, 93)
     
     doc.text("Pagos Recibidos por Transferencia:", 22, 103)
-    doc.text(`$${transferencia.toFixed(2)}`, 150, 103)
+    doc.text(`$${(transferencia).toFixed(2)}`, 150, 103)
     
     doc.line(22, 110, 188, 110)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
     doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
-    doc.text(`$${totalGeneral.toFixed(2)}`, 150, 119)
+    doc.text(`$${(totalGeneral).toFixed(2)}`, 150, 119)
     
     doc.setFontSize(9)
     doc.setFont("helvetica", "italic")
@@ -135,16 +135,6 @@ export default function Admin() {
     
     doc.save(`Corte_${labelPeriodo}_${new Date().toISOString().split('T')[0]}.pdf`)
   }  
-
-  const procesarCerrarTurno = async () => {
-    if (!confirm(`¿Estás seguro de que deseas CERRAR EL TURNO para el período (${periodoReporte.toUpperCase()})? Esto descargará el reporte final del día.`)) return
-    try {
-      const datosCierre = await api.get(`/reportes/corte-caja?periodo=${periodoReporte}`)
-      generarPDFCorte(datosCierre, periodoReporte)
-      toast('Turno cerrado exitosamente. Descargando PDF...', 'success')
-      cargarTodo()
-    } catch { toast('Error al procesar el cierre de turno', 'error') }
-  }
 
   const guardarMesa = async () => {
     try {
@@ -224,7 +214,23 @@ export default function Admin() {
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
-
+  
+  const manejarCerrarTurnoYDescargarPDF = async () => {
+    try{
+      const datosCorte = await api.get('/reportes/corte-caja')
+      generarPDFCorte(datosCorte, 'dia');
+      localStorage.removeItem('token');
+      localStorage.removeItem('Admin');
+      sessionStorage.clear();
+      toast('Turno cerrado y PDF descargado', 'success');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+      toast('Modo depuración: Revisa la consola (Fn + F12)', 'info');
+    }catch{
+      toast('Error al cerrar turno', 'error');
+    }
+  }
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  
@@ -232,7 +238,7 @@ export default function Admin() {
       </div>
       <div className={style.contentWrapper}>
 
-        {/* ══════════ DASHBOARD ══════════ */}
+        {/* ---------- DASHBOARD ---------- */}
         {tab === 'dashboard' && (
           <div>
             {/* Encabezado */}
@@ -324,7 +330,7 @@ export default function Admin() {
             {reporte && (
               <div className={style.chartsGrid}>
                 <div className={style.chartCard1}>
-                  <h3 className={style.chartTitle1}>🏆 Top 5 Productos más vendidos</h3>
+                  <h3 className={style.chartTitle1}>?? Top 5 Productos más vendidos</h3>
                   {reporte.top_productos.length === 0 ? (
                     <p className={style.chartEmpty1}>Sin datos en este período</p>
                   ) : (
@@ -340,7 +346,7 @@ export default function Admin() {
                 </div>
 
                 <div className={style.chartCard2}> 
-                  <h3 className={style.chartTitle2}><span>💳</span> Distribución por método de pago</h3>
+                  <h3 className={style.chartTitle2}><span>??</span> Distribución por método de pago</h3>
                   {reporte.por_metodo.length === 0 ? ( 
                     <p className={style.chartEmpty2}>Sin datos en este período</p>
                   ) : (
@@ -361,12 +367,12 @@ export default function Admin() {
             {/* CIERRE DE TURNO */}
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
-                <div className={style.auditIconWrap}>
-                  <CheckCircle2 size={28} color="var(--primary)" />
+                <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
+                  <CheckCircle2 size={28}  color="var(--primary)"/>
                 </div>  
                 <div>
-                  <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
-                  <p className={style.auditDesc}>Verifica de forma segura los montos acumulados de efectivo y terminales</p>
+                <h3 className={style.auditTitle}>?? Corte de caja y cierre de turno</h3>
+                <p className={style.auditDesc}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
                 </div>  
               </div>   
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -380,16 +386,19 @@ export default function Admin() {
                   Ver corte
                   <ArrowUpRight size={16} />
                 </button>
-                <button className={style.auditButton} onClick={procesarCerrarTurno}>
+              </div>
+              <div className={style.auditCard}>
+                <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
                   <LockIcon size={16} />
+                  
                   Cerrar Turno (PDF)
                 </button>
               </div>
-            </div>
+            </div> 
           </div> 
         )}
 
-        {/* ══════════ MESAS ══════════ */}
+        {/* ---------- MESAS ---------- */}
         {tab === 'mesas' && (
           <div>
             <div className={style.sectionHeader}>
@@ -437,7 +446,7 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ══════════ PRODUCTOS ══════════ */}
+        {/* ---------- PRODUCTOS ---------- */}
         {tab === 'productos' && (
           <div>
             <div className={style.sectionHeader}>
@@ -465,7 +474,7 @@ export default function Admin() {
                         <span className={`${style.stockTextBase} ${p.stock <= p.stock_minimo ? style.stockTextError : style.stockTextNormal}`}>
                           {p.stock} uds.
                         </span>
-                        {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>⚠️ bajo</span>}
+                        {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>?? bajo</span>}
                       </td>
                       <td>
                         <span className={`${style.badge} ${p.activo ? style['badge-success'] : style['badge-error']}`}>
@@ -499,13 +508,13 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ══════════ ÓRDENES ══════════ */}
+        {/* ---------- ÓRDENES ---------- */}
         {tab === 'ordenes' && (
           <div>
             <h2 className={style.sectionTitleMb}>Órdenes Activas</h2>
             {ordenes.length === 0
               ? <div className={style.ordenesEmptyWrap}>
-                  <p className={style.ordenesEmptyText}>✓ Sin órdenes abiertas</p>
+                  <p className={style.ordenesEmptyText}>? Sin órdenes abiertas</p>
                 </div>
               : <div className={style['ordenes-grid']}>
                   {ordenes.map(o => (
@@ -526,7 +535,7 @@ export default function Admin() {
                             <div className={style.ordenQty}>{item.cantidad}x</div>
                             <div className={style.ordenProducto}>
                               <div className={style.ordenProductoName}>{item.producto_nombre}</div>
-                              {item.modificador_nombre && <div className={style.ordenProductoMod}>▸ {item.modificador_nombre}</div>}
+                              {item.modificador_nombre && <div className={style.ordenProductoMod}>? {item.modificador_nombre}</div>}
                             </div>
                             <div className={style.ordenStatusGroup}>
                               <span className={`${style.badge} ${
@@ -552,72 +561,73 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ══════════ INVENTARIO ══════════ */}
-        {tab === 'inventario' && (
-          <div>
-            <div className={style.sectionHeader}>
-              <h2 className={style.sectionTitle}>Inventario</h2>
-            </div>
-            <div className={style.inventoryAlert}>
-              <span className={style.inventoryAlertIcon}>⚠️</span>
-              <span>{alertas.length} producto(s) con stock bajo</span>
-            </div>
+        {/* ---------- INVENTARIO ---------- */}
+              {tab === 'inventario' && (
+  <div>
+    <div className={style.sectionHeader}>
+      <h2 className={style.sectionTitle}>Inventario</h2>
+    </div>
+    <div className={style.inventoryAlert}>
+      <span className={style.inventoryAlertIcon}>??</span>
+      <span>2 producto(s) con stock bajo</span>
+    </div>
 
-            <div className={style['table-wrap']}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>PRODUCTO</th>
-                    <th>ESTACIÓN</th>
-                    <th className={style.textCenter}>STOCK ACTUAL</th>
-                    <th>MÍNIMO</th>
-                    <th>ESTADO</th>
-                    <th className={style.textCenter}>ACCIÓN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productos.map(p => {
-                    const esStockBajo = p.stock <= p.stock_minimo
-                    return (
-                      <tr key={p.id}>
-                        <td>{p.nombre}</td>
-                        <td>
-                          <span className={style.badge}>{p.estacion}</span>
-                        </td>
-                        <td className={style.textCenter}>
-                          <span className={`${style.stockTextBase} ${esStockBajo ? style.stockTextError : style.stockTextNormal}`}>
-                            {p.stock}
-                          </span>
-                        </td>
-                        <td>{p.stock_minimo}</td>
-                        <td>
-                          <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
-                            {esStockBajo ? '⚠️ Stock Bajo' : '✓ OK'}
-                          </span>
-                        </td>
-                        <td className={style.textCenter}>
-                          <button 
-                            className={style.btnAjustar} 
-                            onClick={() => { 
-                              setModalStockId(p.id) 
-                              setAjusteStock({ delta: '', motivo: 'ingreso' }) 
-                            }}
-                          >
-                            Ajustar
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+    {/* Contenedor de la tabla usando tus clases nativas */}
+    <div className={style['table-wrap']}>
+      <table>
+        <thead>
+          <tr>
+            <th>PRODUCTO</th>
+            <th>ESTACIÓN</th>
+            <th className={style.textCenter}>STOCK ACTUAL</th>
+            <th>MÍNIMO</th>
+            <th>ESTADO</th>
+            <th className={style.textCenter}>ACCIÓN</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => {
+            const esStockBajo = p.stock <= p.stock_minimo;
+            return (
+              <tr key={p.id}>
+                <td>{p.nombre}</td>
+                <td>
+                  <span className={style.badge}>{p.estacion}</span>
+                </td>
+                <td className={style.textCenter}>
+                  <span className={`${style.stockTextBase} ${esStockBajo ? style.stockTextError : style.stockTextNormal}`}>
+                    {p.stock}
+                  </span>
+                </td>
+                <td>{p.stock_minimo}</td>
+                <td>
+                  <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
+                    {esStockBajo ? '?? Stock Bajo' : '? OK'}
+                  </span>
+                </td>
+                <td className={style.textCenter}>
+                  <button 
+                    className={style.btnAjustar} 
+                    onClick={() => { 
+                      setModalStockId(p.id); 
+                      setAjusteStock({ delta: '', motivo: 'ingreso' }); 
+                    }}
+                  >
+                    Ajustar
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
       </div>
 
-      {/* ── MODALES ── */}
+      {/* -- MODALES -- */}
       {modalMesa && (
         <Modal title={modalMesa === 'nueva' ? 'Nueva Mesa' : 'Editar Mesa'} onClose={() => setModalMesa(null)}
           footer={<>
