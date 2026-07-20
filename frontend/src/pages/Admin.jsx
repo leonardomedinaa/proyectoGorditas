@@ -69,13 +69,20 @@ export default function Admin() {
       }
     })
     return unsub
-  }, [cargarTodo])
+  }, [cargarTodo, toast])
 
   //generador de pdf
   const generarPDFCorte =(datos,periodo)=>{
     const doc=new jsPDF()
     const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
+    const resumenArray = datos.resumen || [];
+    const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta');
+    const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia');
 
+    const efectivo = datos.efectivo_esperado || 0;
+    const tarjeta = tarjetaObj ? tarjetaObj.total : 0;
+    const transferencia = transferenciaObj ? transferenciaObj.total : 0;
+    const totalGeneral = datos.total_general || 0;
     doc.setFillColor(31,41,55)
     doc.rect(0,0,210,35,'F')
     doc.setFont("helvetica","bold")
@@ -105,19 +112,19 @@ export default function Admin() {
     
     doc.setFont("Helvetica", "normal")
     doc.text("Efectivo Esperado en Caja:", 22, 83)
-    doc.text(`$${(datos.efectivo_esperado || 0).toFixed(2)}`, 150, 83)
+    doc.text(`$${efectivo.toFixed(2)}`, 150, 83)
     
     doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
-    doc.text(`$${(datos.pagos_tarjeta || 0).toFixed(2)}`, 150, 93)
+    doc.text(`$${tarjeta.toFixed(2)}`, 150, 93)
     
     doc.text("Pagos Recibidos por Transferencia:", 22, 103)
-    doc.text(`$${(datos.pagos_transferencia || 0).toFixed(2)}`, 150, 103)
+    doc.text(`$${transferencia.toFixed(2)}`, 150, 103)
     
     doc.line(22, 110, 188, 110)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
     doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
-    doc.text(`$${(datos.total_general || 0).toFixed(2)}`, 150, 119)
+    doc.text(`$${totalGeneral.toFixed(2)}`, 150, 119)
     
     doc.setFontSize(9)
     doc.setFont("helvetica", "italic")
@@ -207,17 +214,31 @@ const guardarMesa = async () => {
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
   
   const manejarCerrarTurnoYDescargarPDF = async () => {
-    try{
-      const datosCorte = await api.get('/reportes/corte-caja')
+    // 1. Buscar directamente en tu lista actual de órdenes si hay alguna abierta
+    // (Cambia 'ordenes' por el nombre de tu variable de estado si se llama diferente)
+    const hayOrdenesAbiertas = ordenes.some(orden => orden.estado === 'abierta');
+
+    if (hayOrdenesAbiertas) {
+      toast('No se puede cerrar el turno: Hay órdenes abiertas pendientes en las mesas.', 'error');
+      return; // Bloquea todo el flujo
+    }
+
+  // 2. Flujo normal si todo está cerrado
+    try {
+      const datosCorte = await api.get('/reportes/corte-caja');
       generarPDFCorte(datosCorte, 'dia');
+    
       localStorage.removeItem('token');
       localStorage.removeItem('Admin');
       sessionStorage.clear();
+    
       toast('Turno cerrado y PDF descargado', 'success');
+    
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    }catch{
+    } catch (error) {
+      console.error(error);
       toast('Error al cerrar turno', 'error');
     }
   }
