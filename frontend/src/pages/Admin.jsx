@@ -213,35 +213,30 @@ const guardarMesa = async () => {
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
   
-  const manejarCerrarTurnoYDescargarPDF = async () => {
-    // 1. Buscar directamente en tu lista actual de órdenes si hay alguna abierta
-    // (Cambia 'ordenes' por el nombre de tu variable de estado si se llama diferente)
+const manejarCerrarTurnoYDescargarPDF = async () => {
+  try {
     const hayOrdenesAbiertas = ordenes.some(orden => orden.estado === 'abierta');
-
     if (hayOrdenesAbiertas) {
       toast('No se puede cerrar el turno: Hay órdenes abiertas pendientes en las mesas.', 'error');
-      return; // Bloquea todo el flujo
+      return;
     }
-
-  // 2. Flujo normal si todo está cerrado
-    try {
-      const datosCorte = await api.get('/reportes/corte-caja');
-      generarPDFCorte(datosCorte, 'dia');
+    const datosCorte = await api.get('/reportes/corte-caja');
+    generarPDFCorte(datosCorte.data || datosCorte, 'dia');
     
+    toast('Turno finalizado. Notificando a todas las estaciones...', 'success');
+    
+    setTimeout(() => {
       localStorage.removeItem('token');
       localStorage.removeItem('Admin');
       sessionStorage.clear();
-    
-      toast('Turno cerrado y PDF descargado', 'success');
-    
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    } catch (error) {
-      console.error(error);
-      toast('Error al cerrar turno', 'error');
-    }
+      window.location.href = '/login';
+    }, 2000);
+
+  } catch (error) {
+    console.error(error);
+    toast('Error al procesar el cierre de caja', 'error');
   }
+}
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  

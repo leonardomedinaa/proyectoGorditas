@@ -71,6 +71,17 @@ export default function Mesero() {
     cargarDatos()
     const unsub = createWS(`mesero_${user.id}`, msg => {
       console.log("¡Llegó un mensaje de la cocina!", msg);
+      if (msg.tipo === 'cierre_turno_global') {
+        toast('⚠️ El turno ha sido cerrado por el Administrador. Reiniciando sesión...', 'warning', 5000)
+        
+        localStorage.removeItem('token')
+        sessionStorage.clear()
+        
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 3000)
+        return
+      }
       if (msg.tipo === 'mesa_actualizada') {
         setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }

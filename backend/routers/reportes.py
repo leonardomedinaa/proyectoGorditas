@@ -4,7 +4,7 @@ from sqlalchemy import func
 from database import get_db
 from models import Orden, OrdenItem, Pago, Producto
 from datetime import datetime, timedelta
-
+from ws_manager import manager
 router = APIRouter(prefix="/reportes", tags=["reportes"])
 
 
@@ -76,17 +76,41 @@ def reporte_mes(db: Session = Depends(get_db)):
     desde = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     return get_reporte(db, desde, ahora, "mes")
 
-
 @router.get("/corte-caja")
-def corte_caja(db: Session = Depends(get_db)):
+async def corte_caja(db: Session = Depends(get_db)):
     ahora = datetime.utcnow()
     desde = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
     pagos = db.query(Pago).filter(Pago.pagado_en >= desde).all()
+    
     resumen = {}
     for pago in pagos:
         if pago.metodo not in resumen:
             resumen[pago.metodo] = 0.0
         resumen[pago.metodo] += pago.monto
+
+    # NOTIFICACIÓN DE CIERRE MASIVO
+    # 📣 NOTIFICACIÓN DE CIERRE MASIVO
+    try:
+        mensaje = {"tipo": "cierre_turno_global"}
+        # 1. Recorrer el diccionario de salas (rooms) si existe en tu ws_manager
+        if hasattr(manager, 'rooms') and isinstance(manager.rooms, dict):
+            for room_name, conexiones in manager.rooms.items():
+                for connection in conexiones:
+                    await connection.send_json(mensaje)
+
+        # 2. Recorrer active_connections si es un diccionario de salas
+        elif hasattr(manager, 'active_connections') and isinstance(manager.active_connections, dict):
+            for room_name, conexiones in manager.active_connections.items():
+                for connection in conexiones:
+                    await connection.send_json(mensaje)
+
+        # 3. Broadcast general por si hay sockets globales
+        if hasattr(manager, 'broadcast'):
+            await manager.broadcast(mensaje)
+
+        print("✅ Mensaje 'cierre_turno_global' transmitido a todas las salas")
+    except Exception as e:
+        print(f"❌ Error al enviar WebSocket de cierre: {e}")  
     return {
         "fecha": ahora.date().isoformat(),
         "resumen": [{"metodo": k, "total": round(v, 2)} for k, v in resumen.items()],

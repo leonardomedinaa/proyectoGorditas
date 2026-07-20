@@ -47,11 +47,23 @@ export default function Cocina() {
   useEffect(() => {
     cargar()
     const room = `cocina_${estacion}`
+    
     const unsub = createWS(room, msg => {
+      console.log("📩 Mensaje recibido por WS:", msg)
       if (msg.tipo === 'nueva_comanda') {
         beep()
         toast(`🔔 Nueva comanda — ${msg.mesa}`, 'info', 5000)
         cargar()
+      }
+      if (msg.tipo === 'cierre_turno_global') {
+        toast('⚠️ El turno ha sido cerrado por el Administrador. Reiniciando estación...', 'warning', 5000)
+        
+        localStorage.removeItem('token')
+        sessionStorage.clear()
+        
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 3000)
       }
     })
     const intervalo = setInterval(() => {
