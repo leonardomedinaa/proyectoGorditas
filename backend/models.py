@@ -26,6 +26,7 @@ class Mesa(Base):
     estado = Column(String, default="disponible")  # disponible | ocupada
     capacidad = Column(Integer, default=4)
     bloqueada_por = Column(Integer, nullable=True)
+    
     ordenes = relationship("Orden", back_populates="mesa")
 
 
