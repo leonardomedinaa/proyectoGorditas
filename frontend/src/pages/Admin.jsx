@@ -6,11 +6,10 @@ import Topbar from '../components/Topbar'
 import Modal from '../components/Modal'
 import style from '../styles/admin.module.css'
 import jsPDF from 'jspdf'
-import { 
-  AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
+import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
-  ArrowUpRight, LayoutDashboard, Lock as LockIcon 
-} from 'lucide-react'
+  ArrowUpRight, Lock as LockIcon
+ } from 'lucide-react'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -39,17 +38,17 @@ export default function Admin() {
   const [formMesa, setFormMesa] = useState({ nombre: '', capacidad: 4 })
   const [formProd, setFormProd] = useState({ nombre: '', precio: '', estacion: 'gorditas', stock: 100, stock_minimo: 20 })
   const [ajusteStock, setAjusteStock] = useState({ delta: '', motivo: 'ingreso' })
-  const [mesaAEliminar, setMesaAEliminar] = useState(null)
-
+  const [mesaAEliminar, setMesaAEliminar] = useState(null);
   const cargarTodo = useCallback(async () => {
     try {
-      const [m, p, o, a] = await Promise.all([
+      const [m, p, o, a,r] = await Promise.all([
         api.get('/mesas/'),
         api.get('/productos/todos'),
         api.get('/ordenes/'),
         api.get('/productos/alertas-stock'),
+        api.get('/reportes/dia')
       ])
-      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a)
+      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
     } catch { toast('Error al cargar datos', 'error') }
   }, [toast])
 
@@ -66,33 +65,25 @@ export default function Admin() {
       }
       if (msg.tipo === 'mesa_actualizada') setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       if (msg.tipo === 'orden_creada' || msg.tipo === 'orden_cerrada') {
-        cargarTodo()
+        cargarTodo() // Recarga datos si hay movimientos en cocina/caja
       }
     })
     return unsub
-  }, [cargarTodo, toast])
+  }, [cargarTodo])
 
-  // Generador de PDF
-  const generarPDFCorte = (datos, periodo) => {
-    const doc = new jsPDF()
-    const labelPeriodo = periodo === 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
-    const resumenArray = datos.resumen || []
-    const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta')
-    const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia')
+  //generador de pdf
+  const generarPDFCorte =(datos,periodo)=>{
+    const doc=new jsPDF()
+    const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
 
-    const efectivo = datos.efectivo_esperado || 0
-    const tarjeta = tarjetaObj ? tarjetaObj.total : (datos.pagos_tarjeta || 0)
-    const transferencia = transferenciaObj ? transferenciaObj.total : (datos.pagos_transferencia || 0)
-    const totalGeneral = datos.total_general || 0
-
-    doc.setFillColor(31, 41, 55)
-    doc.rect(0, 0, 210, 35, 'F')
-    doc.setFont("helvetica", "bold")
+    doc.setFillColor(31,41,55)
+    doc.rect(0,0,210,35,'F')
+    doc.setFont("helvetica","bold")
     doc.setFontSize(22)
-    doc.setTextColor(255, 255, 255)
-    doc.text("LAS TRES MARIAS", 15, 15)
+    doc.setTextColor(255,255,255)
+    doc.text("LAS TRES MARIAS",15,15)
     doc.setFontSize(11)
-    doc.setFont("helvetica", "normal")
+    doc.setFont("helvetica","normal")
     doc.text(`REPORTE Y CIERRE ${labelPeriodo}`, 15, 25)
     doc.setTextColor(80, 80, 80)
     doc.setFontSize(10)
@@ -112,21 +103,21 @@ export default function Admin() {
     doc.setDrawColor(160, 174, 192)
     doc.line(22, 74, 188, 74)
     
-    doc.setFont("helvetica", "normal")
+    doc.setFont("Helvetica", "normal")
     doc.text("Efectivo Esperado en Caja:", 22, 83)
-    doc.text(`$${efectivo.toFixed(2)}`, 150, 83)
+    doc.text(`$${(datos.efectivo_esperado || 0).toFixed(2)}`, 150, 83)
     
     doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
-    doc.text(`$${tarjeta.toFixed(2)}`, 150, 93)
+    doc.text(`$${(datos.pagos_tarjeta || 0).toFixed(2)}`, 150, 93)
     
     doc.text("Pagos Recibidos por Transferencia:", 22, 103)
-    doc.text(`$${transferencia.toFixed(2)}`, 150, 103)
+    doc.text(`$${(datos.pagos_transferencia || 0).toFixed(2)}`, 150, 103)
     
     doc.line(22, 110, 188, 110)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
     doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
-    doc.text(`$${totalGeneral.toFixed(2)}`, 150, 119)
+    doc.text(`$${(datos.total_general || 0).toFixed(2)}`, 150, 119)
     
     doc.setFontSize(9)
     doc.setFont("helvetica", "italic")
@@ -136,52 +127,42 @@ export default function Admin() {
     doc.save(`Corte_${labelPeriodo}_${new Date().toISOString().split('T')[0]}.pdf`)
   }  
 
-  const procesarCerrarTurno = async () => {
-    if (!confirm(`¿Estás seguro de que deseas CERRAR EL TURNO para el período (${periodoReporte.toUpperCase()})? Esto descargará el reporte final del día.`)) return
-    try {
-      const datosCierre = await api.get(`/reportes/corte-caja?periodo=${periodoReporte}`)
-      generarPDFCorte(datosCierre, periodoReporte)
-      toast('Turno cerrado exitosamente. Descargando PDF...', 'success')
-      cargarTodo()
-    } catch { toast('Error al procesar el cierre de turno', 'error') }
-  }
-
-  const guardarMesa = async () => {
+const guardarMesa = async () => {
     try {
       if (modalMesa === 'nueva') {
+        // 1. Verificamos si existe una mesa con ese nombre (ignora mayúsculas/minúsculas)
         const mesaExistente = mesas.find(
           m => m.nombre.toLowerCase() === formMesa.nombre.toLowerCase()
-        )
+        );
 
         if (mesaExistente) {
+          // 2. Si existe, la reactivamos cambiando su estado a 'disponible'
           await api.put(`/mesas/${mesaExistente.id}`, {
-            ...formMesa,
+            ...formMesa, // Mantiene el nombre y la nueva capacidad si se cambió
             estado: 'disponible'
-          })
-          toast('Mesa existente reactivada y disponible', 'success')
+          });
+          toast('Mesa existente reactivada y disponible', 'success');
         } else {
-          await api.post('/mesas/', formMesa)
-          toast('Mesa creada', 'success')
+          // 3. Si no existe, la creamos normalmente
+          await api.post('/mesas/', formMesa);
+          toast('Mesa creada', 'success');
         }
       } else {
-        await api.put(`/mesas/${modalMesa.id}`, formMesa)
-        toast('Mesa actualizada', 'success')
+        // Lógica de edición normal
+        await api.put(`/mesas/${modalMesa.id}`, formMesa);
+        toast('Mesa actualizada', 'success');
       }
-      setModalMesa(null)
-      cargarTodo()
+      setModalMesa(null);
+      cargarTodo();
     } catch (e) {
-      toast(e.message || 'Error al guardar mesa', 'error')
+      toast(e.message || 'Error al guardar mesa', 'error');
     }
-  }
+  };
 
   const eliminarMesa = async (id) => {
-    try { 
-      await api.delete(`/mesas/${id}`)
-      toast('Mesa eliminada', 'success')
-      cargarTodo() 
-    } catch (e) { 
-      toast(e.message || 'Error al eliminar mesa', 'error') 
-    }
+    if (!confirm('¿Eliminar esta mesa?')) return
+    try { await api.delete(`/mesas/${id}`); toast('Mesa eliminada', 'success'); cargarTodo() }
+    catch (e) { toast(e.message, 'error') }
   }
 
   const guardarProducto = async () => {
@@ -224,29 +205,44 @@ export default function Admin() {
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
-
+  
+  const manejarCerrarTurnoYDescargarPDF = async () => {
+    try{
+      const datosCorte = await api.get('/reportes/corte-caja')
+      generarPDFCorte(datosCorte, 'dia');
+      localStorage.removeItem('token');
+      localStorage.removeItem('Admin');
+      sessionStorage.clear();
+      toast('Turno cerrado y PDF descargado', 'success');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    }catch{
+      toast('Error al cerrar turno', 'error');
+    }
+  }
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  
-        <Topbar tab={tab} setTab={setTab} tabs={TABS} />
+      <Topbar tab={tab} setTab={setTab} tabs={TABS} />
       </div>
       <div className={style.contentWrapper}>
 
         {/* ══════════ DASHBOARD ══════════ */}
         {tab === 'dashboard' && (
           <div>
-            {/* Encabezado */}
+            {/* Encabezado*/}
             <div className={style.dashboardHeader}>
               <div className={style.dashboardTitleGroup}>
                   <div className={style.dashboardIconWrapper}>
-                    <LayoutDashboard size={24} />
+                    
                   </div>
                   <div>
                     <h2 className={style.dashboardTitle}>Panel de Control</h2>
                     <p className={style.dashboardSubtitle}>Monitoreo rápido de operaciones</p>
                   </div>
               </div>
-              {/* FILTRO DE REPORTE */}
+              {/* FILTRO DE REPORTE*/}
               <div className={style.filterGroup}>
                   {['dia','semana','mes'].map(p => (
                     <button 
@@ -258,13 +254,12 @@ export default function Admin() {
                 ))}
               </div>
             </div>
-
-            {/* ALERTAS DE INVENTARIO */}
+            {/* ALERTAS DE INVENTARIO*/}
             {alertas.length > 0 && (
               <div className={style.alertContainer}>
-                <div className={style.alertIconWrapper}>
-                  <AlertTriangle size={28}/>
-                </div>
+                  <div className={style.alertIconWrapper}>
+                    <AlertTriangle size={28}/>
+                  </div>
                 <div className={style.alertContent}>
                   <strong className={style.alertTitle}>Alertas de stock bajo ({alertas.length})</strong>
                   <div className={style.alertBadgesList}>
@@ -279,27 +274,25 @@ export default function Admin() {
             )}
 
             <div className={style.kpiGrid}>
-              {/* TARJETA 1 */}
+              {/*TARJETA 1*/}
               <div className={`${style.kpiCard} ${style.kpiCard1}`}>
                 <div>  
-                  <div className={style.kpiLabel}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
-                  <div className={`${style.kpiValue} ${style.kpiValue1}`}>${reporte ? reporte.total_ventas.toFixed(2) : '—'}</div>
-                  <div className={style.kpiSub1}><span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span></div>
-                </div>
-                <div className={style.kpiIcon1}><DollarSign size={28} /></div>
-              </div> 
-
-              {/* TARJETA 2 */}
+                <div className={style.kpiLabel}>Ventas {periodoReporte === 'dia' ? 'de hoy' : periodoReporte === 'semana' ? 'de la semana' : 'del mes'}</div>
+                <div className={`${style.kpiValue} ${style.kpiValue1}`}>${reporte ? reporte.total_ventas.toFixed(2) : '—'}</div>
+                <div className={style.kpiSub1}><span>{reporte?.num_ordenes ?? 0} órdenes cerradas</span></div>
+              </div>
+              <div className={style.kpiIcon1}><DollarSign size={28} /></div>
+            </div> 
+            {/*tarjeta 2*/}
               <div className={style.kpiCard}>
-                <div>
+              <div>
                   <div className={style.kpiLabel}>Órdenes abiertas</div>
-                  <div className={`${style.kpiValue} ${style.kpiValue2}`}>{ordenes.length}</div>
-                  <div className={style.kpiSub2}>${totalActivo.toFixed(2)} por cobrar</div>
-                </div>
-                <div className={style.kpiIcon2}><Clock size={28} /></div>
-              </div>    
-
-              {/* TARJETA 3 */}
+                <div className={`${style.kpiValue} ${style.kpiValue2}`}>{ordenes.length}</div>
+                <div className={style.kpiSub2}>${totalActivo.toFixed(2)} por cobrar</div>
+              </div>
+              <div className={style.kpiIcon2}><Clock size={28} /></div>
+            </div>    
+            {/*TARJETA 3*/}
               <div className={style.kpiCard}>
                 <div>
                   <div className={style.kpiLabel}>Mesas disponibles</div>
@@ -308,9 +301,8 @@ export default function Admin() {
                 </div>
                 <div className={style.kpiIcon3}><Utensils size={28} /></div>
               </div>
-
-              {/* TARJETA 4 */}
-              <div className={style.kpiCard}>
+            {/*TARJETA 4*/}
+                <div className={style.kpiCard}>
                 <div>
                   <div className={style.kpiLabel}>Alertas de stock</div>
                   <div className={`${style.kpiValue} ${alertas.length > 0 ? style.textError : style.textSuccess}`}>{alertas.length}</div>
@@ -319,74 +311,72 @@ export default function Admin() {
                 <div className={alertas.length > 0 ? style.kpiIcon4Error : style.kpiIcon4Success}><ShoppingBag size={28} /></div>  
               </div>
             </div>
-
-            {/* GRÁFICAS */}
+            {/*GRAFICAS*/}
             {reporte && (
               <div className={style.chartsGrid}>
                 <div className={style.chartCard1}>
                   <h3 className={style.chartTitle1}>🏆 Top 5 Productos más vendidos</h3>
                   {reporte.top_productos.length === 0 ? (
                     <p className={style.chartEmpty1}>Sin datos en este período</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 10, right: 10, top: 0, bottom: 0 }}>
-                        <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-                        <YAxis type="category" dataKey="nombre" width={100} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
-                        <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }} />
-                        <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
+                    ): (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={reporte.top_productos} layout="vertical" margin={{ left: 10, right: 10, top: 0, bottom: 0 }}>
+                          <XAxis type="number" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                          <YAxis type="category" dataKey="nombre" width={100} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 500 }} />
+                          <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} labelStyle={{ color: 'var(--text-primary)', fontWeight:600 }} />
+                          <Bar dataKey="cantidad" fill="var(--primary)" radius={[0, 8, 8, 0]} barSize={14} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
                 </div>
 
                 <div className={style.chartCard2}> 
                   <h3 className={style.chartTitle2}><span>💳</span> Distribución por método de pago</h3>
                   {reporte.por_metodo.length === 0 ? ( 
                     <p className={style.chartEmpty2}>Sin datos en este período</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={220}>
-                      <PieChart>
-                        <Pie data={reporte.por_metodo} dataKey="total" nameKey="metodo" cx="50%" cy="45%" innerRadius={58} outerRadius={80} paddingAngle={4}>
-                          {reporte.por_metodo.map((_, i) => (<Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} className={style.pieCell}/>))}
-                        </Pie>
-                        <Tooltip contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} />
-                        <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+                    ) : (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie data={reporte.por_metodo} dataKey="total" nameKey="metodo" cx="50%" cy="45%" innerRadius={58} outerRadius={80} paddingAngle={4}>
+                            {reporte.por_metodo.map((_, i) => (<Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} className={style.pieCell}/>))}
+                          </Pie>
+                          <Tooltip contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '0.6rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)' }} />
+                          <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px',paddingTop: '10px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )
+                  }
                 </div>
               </div>
             )}
-
-            {/* CIERRE DE TURNO */}
+            {/*CIERRE DE TURNO*/}
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
-                <div className={style.auditIconWrap}>
-                  <CheckCircle2 size={28} color="var(--primary)" />
+                <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
+                  <CheckCircle2 size={28}  color="var(--primary)"/>
                 </div>  
                 <div>
-                  <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
-                  <p className={style.auditDesc}>Verifica de forma segura los montos acumulados de efectivo y terminales</p>
+                <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
+                <p className={style.auditDesc}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
                 </div>  
               </div>   
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button 
-                  className={style.auditButton} 
-                  onClick={async () => {
+                <button className={style.auditButton} 
+                onClick={async () => {
                     const c = await api.get('/reportes/corte-caja')
                     alert(`Efectivo esperado: $${c.efectivo_esperado}\nTotal general: $${c.total_general}`)
-                  }}
-                >
-                  Ver corte
-                  <ArrowUpRight size={16} />
+                  }}>
+                    Ver corte
+                    <ArrowUpRight size={16} />
                 </button>
-                <button className={style.auditButton} onClick={procesarCerrarTurno}>
+              </div>
+              <div className={style.auditCard}>
+                <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
                   <LockIcon size={16} />
+                  
                   Cerrar Turno (PDF)
                 </button>
               </div>
-            </div>
-          </div> 
+            </div> 
         )}
 
         {/* ══════════ MESAS ══════════ */}
@@ -553,67 +543,68 @@ export default function Admin() {
         )}
 
         {/* ══════════ INVENTARIO ══════════ */}
-        {tab === 'inventario' && (
-          <div>
-            <div className={style.sectionHeader}>
-              <h2 className={style.sectionTitle}>Inventario</h2>
-            </div>
-            <div className={style.inventoryAlert}>
-              <span className={style.inventoryAlertIcon}>⚠️</span>
-              <span>{alertas.length} producto(s) con stock bajo</span>
-            </div>
+              {tab === 'inventario' && (
+  <div>
+    <div className={style.sectionHeader}>
+      <h2 className={style.sectionTitle}>Inventario</h2>
+    </div>
+    <div className={style.inventoryAlert}>
+      <span className={style.inventoryAlertIcon}>⚠️</span>
+      <span>2 producto(s) con stock bajo</span>
+    </div>
 
-            <div className={style['table-wrap']}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>PRODUCTO</th>
-                    <th>ESTACIÓN</th>
-                    <th className={style.textCenter}>STOCK ACTUAL</th>
-                    <th>MÍNIMO</th>
-                    <th>ESTADO</th>
-                    <th className={style.textCenter}>ACCIÓN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productos.map(p => {
-                    const esStockBajo = p.stock <= p.stock_minimo
-                    return (
-                      <tr key={p.id}>
-                        <td>{p.nombre}</td>
-                        <td>
-                          <span className={style.badge}>{p.estacion}</span>
-                        </td>
-                        <td className={style.textCenter}>
-                          <span className={`${style.stockTextBase} ${esStockBajo ? style.stockTextError : style.stockTextNormal}`}>
-                            {p.stock}
-                          </span>
-                        </td>
-                        <td>{p.stock_minimo}</td>
-                        <td>
-                          <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
-                            {esStockBajo ? '⚠️ Stock Bajo' : '✓ OK'}
-                          </span>
-                        </td>
-                        <td className={style.textCenter}>
-                          <button 
-                            className={style.btnAjustar} 
-                            onClick={() => { 
-                              setModalStockId(p.id) 
-                              setAjusteStock({ delta: '', motivo: 'ingreso' }) 
-                            }}
-                          >
-                            Ajustar
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+    {/* Contenedor de la tabla usando tus clases nativas */}
+    <div className={style['table-wrap']}>
+      <table>
+        <thead>
+          <tr>
+            <th>PRODUCTO</th>
+            <th>ESTACIÓN</th>
+            <th className={style.textCenter}>STOCK ACTUAL</th>
+            <th>MÍNIMO</th>
+            <th>ESTADO</th>
+            <th className={style.textCenter}>ACCIÓN</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => {
+            const esStockBajo = p.stock <= p.stock_minimo;
+            return (
+              <tr key={p.id}>
+                <td>{p.nombre}</td>
+                <td>
+                  <span className={style.badge}>{p.estacion}</span>
+                </td>
+                <td className={style.textCenter}>
+                  <span className={`${style.stockTextBase} ${esStockBajo ? style.stockTextError : style.stockTextNormal}`}>
+                    {p.stock}
+                  </span>
+                </td>
+                <td>{p.stock_minimo}</td>
+                <td>
+                  <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
+                    {esStockBajo ? '⚠️ Stock Bajo' : '✓ OK'}
+                  </span>
+                </td>
+                <td className={style.textCenter}>
+                  <button 
+                    className={style.btnAjustar} 
+                    onClick={() => { 
+                      setModalStockId(p.id); 
+                      setAjusteStock({ delta: '', motivo: 'ingreso' }); 
+                    }}
+                  >
+                    Ajustar
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
       </div>
 
@@ -636,81 +627,87 @@ export default function Admin() {
         </Modal>
       )}
 
-      {modalProducto && (
-        <Modal 
-          title={modalProducto === 'nuevo' ? 'Nuevo Producto' : 'Editar Producto'} 
-          onClose={() => setModalProducto(null)}
-          footer={
-            <>
-              <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalProducto(null)}>
-                Cancelar
-              </button>
-              <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarProducto}>
-                Guardar
-              </button>
-            </>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-            <div className={style['form-field']}>
-              <label>Nombre</label>
-              <input 
-                value={formProd.nombre} 
-                onChange={e => setFormProd(f => ({ ...f, nombre: e.target.value }))} 
-                placeholder="Nombre del producto" 
-              />
-            </div>
+{modalProducto && (
+  <Modal 
+    title={modalProducto === 'nuevo' ? 'Nuevo Producto' : 'Editar Producto'} 
+    onClose={() => setModalProducto(null)}
+    footer={
+      <>
+        <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setModalProducto(null)}>
+          Cancelar
+        </button>
+        <button className={`${style.btn} ${style['btn-primary']}`} onClick={guardarProducto}>
+          Guardar
+        </button>
+      </>
+    }
+  >
+    {/* Contenedor maestro para asegurar que todo se alinee verticalmente y no se encime */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      
+      {/* 1. Campo Nombre */}
+      <div className={style['form-field']}>
+        <label>Nombre</label>
+        <input 
+          value={formProd.nombre} 
+          onChange={e => setFormProd(f => ({ ...f, nombre: e.target.value }))} 
+          placeholder="Nombre del producto" 
+        />
+      </div>
 
-            <div className={style['grid-2']}>
-              <div className={style['form-field']}>
-                <label>Precio ($)</label>
-                <input 
-                  type="number" 
-                  step="0.5" 
-                  min="0" 
-                  value={formProd.precio} 
-                  onChange={e => setFormProd(f => ({ ...f, precio: e.target.value }))} 
-                  placeholder="0.00" 
-                />
-              </div>
-              
-              <div className={style['form-field']}>
-                <label>Estación</label>
-                <select 
-                  value={formProd.estacion} 
-                  onChange={e => setFormProd(f => ({ ...f, estacion: e.target.value }))}
-                >
-                  <option value="gorditas">Gorditas</option>
-                  <option value="menudo">Menudo</option>
-                  <option value="antojitos">Antojitos</option>
-                </select>
-              </div>
-            </div>
+      {/* 2. Bloque de Precio y Estación */}
+      <div className={style['grid-2']}>
+        <div className={style['form-field']}>
+          <label>Precio ($)</label>
+          <input 
+            type="number" 
+            step="0.5" 
+            min="0" 
+            value={formProd.precio} 
+            onChange={e => setFormProd(f => ({ ...f, precio: e.target.value }))} 
+            placeholder="0.00" 
+          />
+        </div>
+        
+        <div className={style['form-field']}>
+          <label>Estación</label>
+          <select 
+            value={formProd.estacion} 
+            onChange={e => setFormProd(f => ({ ...f, estacion: e.target.value }))}
+          >
+            <option value="gorditas">Gorditas</option>
+            <option value="menudo">Menudo</option>
+            <option value="antojitos">Antojitos</option>
+          </select>
+        </div>
+      </div>
 
-            <div className={style['grid-2']}>
-              <div className={style['form-field']}>
-                <label>Stock inicial</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  value={formProd.stock} 
-                  onChange={e => setFormProd(f => ({ ...f, stock: e.target.value }))} 
-                />
-              </div>
-              
-              <div className={style['form-field']}>
-                <label>Stock mínimo (alerta)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  value={formProd.stock_minimo} 
-                  onChange={e => setFormProd(f => ({ ...f, stock_minimo: e.target.value }))} 
-                />
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* 3. Bloque de Stocks */}
+      <div className={style['grid-2']}>
+        <div className={style['form-field']}>
+          <label>Stock inicial</label>
+          <input 
+            type="number" 
+            min="0" 
+            value={formProd.stock} 
+            onChange={e => setFormProd(f => ({ ...f, stock: e.target.value }))} 
+          />
+        </div>
+        
+        <div className={style['form-field']}>
+          <label>Stock mínimo (alerta)</label>
+          <input 
+            type="number" 
+            min="0" 
+            value={formProd.stock_minimo} 
+            onChange={e => setFormProd(f => ({ ...f, stock_minimo: e.target.value }))} 
+          />
+        </div>
+      </div>
+
+    </div>
+  </Modal>
+)}
 
       {modalStockId && (
         <Modal title="Ajuste de Stock" onClose={() => setModalStockId(null)}
@@ -740,25 +737,28 @@ export default function Admin() {
       )}
 
       {mesaAEliminar && (
-        <Modal title="Confirmar Eliminación" onClose={() => setMesaAEliminar(null)}
-          footer={<>
-            <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setMesaAEliminar(null)}>
-              Cancelar
-            </button>
-            <button className={`${style.btn} ${style['btn-primary']}`} onClick={() => { 
-              eliminarMesa(mesaAEliminar.id) 
-              setMesaAEliminar(null) 
-            }}>
-              Eliminar
-            </button>
-          </>}
-        >
-          <div className={style.modalDeleteBody}>
-            <p>¿Estás seguro de que deseas eliminar la <strong>{mesaAEliminar.nombre}</strong>?</p>
-            <p className={style.warningText}>Esta acción no se puede deshacer.</p>
-          </div>
-        </Modal>
-      )}
+      <div className={style.modalDeleteContainer}>
+        <button className={style.closeModalBtn} onClick={() => setMesaAEliminar(null)}>×</button>
+        <h2>Confirmar Eliminación</h2>
+        
+        <div className={style.modalDeleteBody}>
+          <p>¿Estás seguro de que deseas eliminar la <strong>{mesaAEliminar.nombre}</strong>?</p>
+          <p className={style.warningText}>Esta acción no se puede deshacer.</p>
+        </div>
+
+        <div className={style.modalDeleteActions}>
+          <button className={`${style.btn} ${style['btn-ghost']}`} onClick={() => setMesaAEliminar(null)}>
+            Cancelar
+          </button>
+          <button className={`${style.btn} ${style['btn-primary']}`} onClick={() => { 
+            eliminarMesa(mesaAEliminar.id); 
+            setMesaAEliminar(null); 
+          }}>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   )
 }
