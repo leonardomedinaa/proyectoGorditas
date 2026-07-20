@@ -12,7 +12,7 @@ function estacionDeUsuario(nombre) {
   const n = nombre.toLowerCase()
   if (n.includes('gordita')) return 'gorditas'
   if (n.includes('menudo'))  return 'menudo'
-  if (n.includes('birria'))  return 'birria'
+  if (n.includes('antojitos'))  return 'antojitos'
   return null
 }
 
@@ -83,7 +83,7 @@ export default function Cocina() {
   const TITULO = {
     gorditas: '🫓 Estación Gorditas',
     menudo: '🍲 Estación Menudo',
-    birria: '🌮 Estación Birria y Antojitos',
+    antojitos: '🌮 Estación Antojitos',
   }
 
   const capitalizar = (texto) => {
