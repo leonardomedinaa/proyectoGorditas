@@ -8,23 +8,15 @@ import style from '../styles/admin.module.css'
 import jsPDF from 'jspdf'
 import { AlertTriangle, Plus, Edit2, Trash2, TrendingUp,
   DollarSign, ShoppingBag, CheckCircle2, Clock, Utensils, 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  ArrowUpRight, Lock as LockIcon
-=======
-  ArrowUpRight, LayoutDashboard, Lock as LockIcon
->>>>>>> 0618b31 (	Boton de cierre de corte)
-=======
-  ArrowUpRight, LayoutDashboard, Lock as LockIcon
->>>>>>> 2433cb5 (Eliminacion de mesas)
- } from 'lucide-react'
+  ArrowUpRight,Lock as LockIcon
+} from 'lucide-react'
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'mesas',     label: 'Mesas',     icon: '🪑' },
-  { id: 'productos', label: 'Productos',  icon: '🍽️' },
-  { id: 'ordenes',   label: 'Órdenes',   icon: '📋' },
-  { id: 'inventario',label: 'Inventario', icon: '📦' },
+  { id: 'dashboard', label: 'Dashboard', icon: '??' },
+  { id: 'mesas',     label: 'Mesas',     icon: '??' },
+  { id: 'productos', label: 'Productos',  icon: '???' },
+  { id: 'ordenes',   label: 'Órdenes',   icon: '??' },
+  { id: 'inventario',label: 'Inventario', icon: '??' },
 ]
 
 const COLORES_PIE = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444']
@@ -49,22 +41,22 @@ export default function Admin() {
   const [mesaAEliminar, setMesaAEliminar] = useState(null);
   const cargarTodo = useCallback(async () => {
     try {
-      const [m, p, o, a] = await Promise.all([
+      const [m, p, o, a,r] = await Promise.all([
         api.get('/mesas/'),
         api.get('/productos/todos'),
         api.get('/ordenes/'),
         api.get('/productos/alertas-stock'),
+        api.get('/reportes/dia')
       ])
-      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a)
+      setMesas(m); setProductos(p); setOrdenes(o); setAlertas(a); setReporte(r)
     } catch { toast('Error al cargar datos', 'error') }
-  }, [toast])
   }, [toast])
 
   useEffect(() => {
     cargarTodo()
     const unsub = createWS('admin', msg => {
       if (msg.tipo === 'alerta_stock') {
-        toast(`⚠️ Stock bajo: ${msg.producto_nombre} (${msg.stock} uds.)`, 'warning', 6000)
+        toast(`?? Stock bajo: ${msg.producto_nombre} (${msg.stock} uds.)`, 'warning', 6000)
         setAlertas(prev => {
           const exists = prev.find(a => a.id === msg.producto_id)
           if (exists) return prev.map(a => a.id === msg.producto_id ? { ...a, stock: msg.stock } : a)
@@ -77,21 +69,12 @@ export default function Admin() {
       }
     })
     return unsub
-<<<<<<< HEAD
-<<<<<<< HEAD
   }, [cargarTodo])
-=======
-  }, [])
->>>>>>> 0618b31 (	Boton de cierre de corte)
-=======
-  }, [])
->>>>>>> 2433cb5 (Eliminacion de mesas)
 
   //generador de pdf
   const generarPDFCorte =(datos,periodo)=>{
     const doc=new jsPDF()
     const labelPeriodo=periodo=== 'dia' ? 'DIARIO' : periodo === 'semana' ? 'SEMANAL' : 'MENSUAL'
-<<<<<<< HEAD
     const resumenArray = datos.resumen || [];
     const tarjetaObj = resumenArray.find(item => item.metodo === 'tarjeta');
     const transferenciaObj = resumenArray.find(item => item.metodo === 'transferencia');
@@ -100,9 +83,6 @@ export default function Admin() {
     const tarjeta = tarjetaObj ? tarjetaObj.total : 0;
     const transferencia = transferenciaObj ? transferenciaObj.total : 0;
     const totalGeneral = datos.total_general || 0;
-=======
-
->>>>>>> 0618b31 (	Boton de cierre de corte)
     doc.setFillColor(31,41,55)
     doc.rect(0,0,210,35,'F')
     doc.setFont("helvetica","bold")
@@ -132,7 +112,6 @@ export default function Admin() {
     
     doc.setFont("Helvetica", "normal")
     doc.text("Efectivo Esperado en Caja:", 22, 83)
-<<<<<<< HEAD
     doc.text(`$${(efectivo).toFixed(2)}`, 150, 83)
     
     doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
@@ -140,25 +119,12 @@ export default function Admin() {
     
     doc.text("Pagos Recibidos por Transferencia:", 22, 103)
     doc.text(`$${(transferencia).toFixed(2)}`, 150, 103)
-=======
-    doc.text(`$${(datos.efectivo_esperado || 0).toFixed(2)}`, 150, 83)
-    
-    doc.text("Pagos Recibidos con Tarjeta:", 22, 93)
-    doc.text(`$${(datos.pagos_tarjeta || 0).toFixed(2)}`, 150, 93)
-    
-    doc.text("Pagos Recibidos por Transferencia:", 22, 103)
-    doc.text(`$${(datos.pagos_transferencia || 0).toFixed(2)}`, 150, 103)
->>>>>>> 0618b31 (	Boton de cierre de corte)
     
     doc.line(22, 110, 188, 110)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
     doc.text("TOTAL GENERAL LIQUIDADO:", 22, 119)
-<<<<<<< HEAD
     doc.text(`$${(totalGeneral).toFixed(2)}`, 150, 119)
-=======
-    doc.text(`$${(datos.total_general || 0).toFixed(2)}`, 150, 119)
->>>>>>> 0618b31 (	Boton de cierre de corte)
     
     doc.setFontSize(9)
     doc.setFont("helvetica", "italic")
@@ -168,25 +134,7 @@ export default function Admin() {
     doc.save(`Corte_${labelPeriodo}_${new Date().toISOString().split('T')[0]}.pdf`)
   }  
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-const guardarMesa = async () => {
-=======
-=======
->>>>>>> 2433cb5 (Eliminacion de mesas)
-  const procesarCerrarTurno =async() =>{
-    if (!confirm(`¿Estás seguro de que deseas CERRAR EL TURNO para el período (${periodoReporte.toUpperCase()})? Esto descargará el reporte final del dia.`)) return
-    try {
-      const datosCierre = await api.get(`/reportes/corte-caja?periodo=${periodoReporte}`)
-      generarPDFCorte(datosCierre, periodoReporte)
-      toast('Turno cerrado exitosamente. Descargando PDF...', 'success')
-      cargarTodo()
-    } catch { toast('Error al procesar el cierre de turno', 'error') }
-
-  }
-  
   const guardarMesa = async () => {
->>>>>>> 0618b31 (	Boton de cierre de corte)
     try {
       if (modalMesa === 'nueva') {
         // 1. Verificamos si existe una mesa con ese nombre (ignora mayúsculas/minúsculas)
@@ -264,7 +212,6 @@ const guardarMesa = async () => {
   const mesasDisponibles = mesas.filter(m => m.estado === 'disponible').length
   const mesasOcupadas   = mesas.filter(m => m.estado === 'ocupada').length
   const totalActivo     = ordenes.reduce((s, o) => s + (o.total || 0), 0)
-<<<<<<< HEAD
   
   const manejarCerrarTurnoYDescargarPDF = async () => {
     try{
@@ -282,9 +229,6 @@ const guardarMesa = async () => {
       toast('Error al cerrar turno', 'error');
     }
   }
-=======
-
->>>>>>> 2433cb5 (Eliminacion de mesas)
   return (
     <div className={style.pageContainer}>
       <div className={style.topbarWrapper}>  
@@ -292,7 +236,7 @@ const guardarMesa = async () => {
       </div>
       <div className={style.contentWrapper}>
 
-        {/* ══════════ DASHBOARD ══════════ */}
+        {/* ---------- DASHBOARD ---------- */}
         {tab === 'dashboard' && (
           <div>
             {/* Encabezado*/}
@@ -379,7 +323,7 @@ const guardarMesa = async () => {
             {reporte && (
               <div className={style.chartsGrid}>
                 <div className={style.chartCard1}>
-                  <h3 className={style.chartTitle1}>🏆 Top 5 Productos más vendidos</h3>
+                  <h3 className={style.chartTitle1}>?? Top 5 Productos más vendidos</h3>
                   {reporte.top_productos.length === 0 ? (
                     <p className={style.chartEmpty1}>Sin datos en este período</p>
                     ): (
@@ -395,7 +339,7 @@ const guardarMesa = async () => {
                 </div>
 
                 <div className={style.chartCard2}> 
-                  <h3 className={style.chartTitle2}><span>💳</span> Distribución por método de pago</h3>
+                  <h3 className={style.chartTitle2}><span>??</span> Distribución por método de pago</h3>
                   {reporte.por_metodo.length === 0 ? ( 
                     <p className={style.chartEmpty2}>Sin datos en este período</p>
                     ) : (
@@ -416,21 +360,11 @@ const guardarMesa = async () => {
             {/*CIERRE DE TURNO*/}
             <div className={style.auditCard}>
               <div className={style.auditInfoGroup}>
-<<<<<<< HEAD
-<<<<<<< HEAD
                 <div className={style.auditIconWrap} style={{ fontSize: '2rem' }}>
                   <CheckCircle2 size={28}  color="var(--primary)"/>
-=======
-                <div className={style.auditIconWrap}>
-                  <CheckCircle2 size={28} />
->>>>>>> 0618b31 (	Boton de cierre de corte)
-=======
-                <div className={style.auditIconWrap}>
-                  <CheckCircle2 size={28} />
->>>>>>> 2433cb5 (Eliminacion de mesas)
                 </div>  
                 <div>
-                <h3 className={style.auditTitle}>🏦 Corte de caja y cierre de turno</h3>
+                <h3 className={style.auditTitle}>?? Corte de caja y cierre de turno</h3>
                 <p className={style.auditDesc}> Verifica de forma segura los montos acumulados de efectivo y terminales</p>
                 </div>  
               </div>   
@@ -443,30 +377,17 @@ const guardarMesa = async () => {
                     <ArrowUpRight size={16} />
                 </button>
               </div>
-<<<<<<< HEAD
-<<<<<<< HEAD
               <div className={style.auditCard}>
                 <button className={style.auditButton} onClick={manejarCerrarTurnoYDescargarPDF}>
                   <LockIcon size={16} />
+                  
                   Cerrar Turno (PDF)
                 </button>
               </div>
-=======
-              <button className={style.auditButton} onClick={procesarCerrarTurno}>
-                  <LockIcon size={16} />
-                  Cerrar Turno (PDF)
-                </button>
->>>>>>> 0618b31 (	Boton de cierre de corte)
-=======
-              <button className={style.auditButton} onClick={procesarCerrarTurno}>
-                  <LockIcon size={16} />
-                  Cerrar Turno (PDF)
-                </button>
->>>>>>> 2433cb5 (Eliminacion de mesas)
             </div> 
         )}
 
-        {/* ══════════ MESAS ══════════ */}
+        {/* ---------- MESAS ---------- */}
         {tab === 'mesas' && (
           <div>
             <div className={style.sectionHeader}>
@@ -514,7 +435,7 @@ const guardarMesa = async () => {
           </div>
         )}
 
-        {/* ══════════ PRODUCTOS ══════════ */}
+        {/* ---------- PRODUCTOS ---------- */}
         {tab === 'productos' && (
           <div>
             <div className={style.sectionHeader}>
@@ -542,7 +463,7 @@ const guardarMesa = async () => {
                         <span className={`${style.stockTextBase} ${p.stock <= p.stock_minimo ? style.stockTextError : style.stockTextNormal}`}>
                           {p.stock} uds.
                         </span>
-                        {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>⚠️ bajo</span>}
+                        {p.stock <= p.stock_minimo && <span className={`${style.badge} ${style['badge-error']} ${style.badgeMarginLeft}`}>?? bajo</span>}
                       </td>
                       <td>
                         <span className={`${style.badge} ${p.activo ? style['badge-success'] : style['badge-error']}`}>
@@ -576,13 +497,13 @@ const guardarMesa = async () => {
           </div>
         )}
 
-        {/* ══════════ ÓRDENES ══════════ */}
+        {/* ---------- ÓRDENES ---------- */}
         {tab === 'ordenes' && (
           <div>
             <h2 className={style.sectionTitleMb}>Órdenes Activas</h2>
             {ordenes.length === 0
               ? <div className={style.ordenesEmptyWrap}>
-                  <p className={style.ordenesEmptyText}>✓ Sin órdenes abiertas</p>
+                  <p className={style.ordenesEmptyText}>? Sin órdenes abiertas</p>
                 </div>
               : <div className={style['ordenes-grid']}>
                   {ordenes.map(o => (
@@ -603,7 +524,7 @@ const guardarMesa = async () => {
                             <div className={style.ordenQty}>{item.cantidad}x</div>
                             <div className={style.ordenProducto}>
                               <div className={style.ordenProductoName}>{item.producto_nombre}</div>
-                              {item.modificador_nombre && <div className={style.ordenProductoMod}>▸ {item.modificador_nombre}</div>}
+                              {item.modificador_nombre && <div className={style.ordenProductoMod}>? {item.modificador_nombre}</div>}
                             </div>
                             <div className={style.ordenStatusGroup}>
                               <span className={`${style.badge} ${
@@ -629,14 +550,14 @@ const guardarMesa = async () => {
           </div>
         )}
 
-        {/* ══════════ INVENTARIO ══════════ */}
+        {/* ---------- INVENTARIO ---------- */}
               {tab === 'inventario' && (
   <div>
     <div className={style.sectionHeader}>
       <h2 className={style.sectionTitle}>Inventario</h2>
     </div>
     <div className={style.inventoryAlert}>
-      <span className={style.inventoryAlertIcon}>⚠️</span>
+      <span className={style.inventoryAlertIcon}>??</span>
       <span>2 producto(s) con stock bajo</span>
     </div>
 
@@ -670,7 +591,7 @@ const guardarMesa = async () => {
                 <td>{p.stock_minimo}</td>
                 <td>
                   <span className={`${style.badge} ${esStockBajo ? style['badge-error'] : style['badge-success']}`}>
-                    {esStockBajo ? '⚠️ Stock Bajo' : '✓ OK'}
+                    {esStockBajo ? '?? Stock Bajo' : '? OK'}
                   </span>
                 </td>
                 <td className={style.textCenter}>
@@ -695,7 +616,7 @@ const guardarMesa = async () => {
 
       </div>
 
-      {/* ── MODALES ── */}
+      {/* -- MODALES -- */}
       {modalMesa && (
         <Modal title={modalMesa === 'nueva' ? 'Nueva Mesa' : 'Editar Mesa'} onClose={() => setModalMesa(null)}
           footer={<>
