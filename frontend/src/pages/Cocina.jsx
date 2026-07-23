@@ -166,47 +166,55 @@ export default function Cocina() {
                 </div>
                 
                 <div className={styles['comanda-body-scroll']}>
-                  {grupo.items.map(item => (
-                    <div key={item.item_id} className={styles['comanda-item']}>
-                      <span className={styles.qty}>{item.cantidad}</span>
-                      
-                      <div className={styles.info}>
-                        <div className={styles.nombre}>{item.producto}</div>
-                        {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
-                        {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
-                      </div>
-                      
-                      <div className={styles['comanda-actions']}>
-                        <span className={`${styles.badge} ${
-                          item.estado_cocina === 'listo' ? styles['badge-success'] :
-                          item.estado_cocina === 'preparando' ? styles['badge-warning'] : styles['badge-gray']
-                        }`}>
-                          {item.estado_cocina === 'listo' && '✓ '}
-                          {item.estado_cocina === 'preparando' && '⏱ '}
-                          {item.estado_cocina === 'pendiente' && '⭕ '}
-                          {capitalizar(item.estado_cocina)}
-                        </span>
+                  {[...grupo.items]
+                    .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
+                    .map(item => (
+                      <div key={item.item_id} className={styles['comanda-item']}>
+                        <span className={styles.qty}>{item.cantidad}</span>
                         
-                        <div className={styles['btn-container']}>
-                          {item.estado_cocina === 'pendiente' && (
-                            <button className={`${styles.btn} ${styles['btn-primary']} ${styles['btn-sm']}`}
-                              onClick={() => cambiarEstado(item.orden_id, item.item_id, 'preparando')}>
-                              Preparando
-                            </button>
-                          )}
+                        <div className={styles.info}>
+                          <div className={styles.nombre}>
+                            {item.producto}
+                            {item.comensal && (
+                              <span className={styles['comensal-badge']}>
+                                C{item.comensal}
+                              </span>
+                            )}
+                          </div>
+                          {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
+                          {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
+                        </div>
+                        
+                        <div className={styles['comanda-actions']}>
+                          <span className={`${styles.badge} ${
+                            item.estado_cocina === 'listo' ? styles['badge-success'] :
+                            item.estado_cocina === 'preparando' ? styles['badge-warning'] : styles['badge-gray']
+                          }`}>
+                            {item.estado_cocina === 'listo' && '✓ '}
+                            {item.estado_cocina === 'preparando' && '⏱ '}
+                            {item.estado_cocina === 'pendiente' && '⭕ '}
+                            {capitalizar(item.estado_cocina)}
+                          </span>
                           
-                          {item.estado_cocina === 'preparando' && (
-                            <button className={`${styles.btn} ${styles['btn-success']} ${styles['btn-sm']}`}
-                              onClick={() => cambiarEstado(item.orden_id, item.item_id, 'listo')}>
-                              <CheckCircle size={14} />
-                              Listo
-                            </button>
-                          )}
+                          <div className={styles['btn-container']}>
+                            {item.estado_cocina === 'pendiente' && (
+                              <button className={`${styles.btn} ${styles['btn-primary']} ${styles['btn-sm']}`}
+                                onClick={() => cambiarEstado(item.orden_id, item.item_id, 'preparando')}>
+                                Preparando
+                              </button>
+                            )}
+                            
+                            {item.estado_cocina === 'preparando' && (
+                              <button className={`${styles.btn} ${styles['btn-success']} ${styles['btn-sm']}`}
+                                onClick={() => cambiarEstado(item.orden_id, item.item_id, 'listo')}>
+                                <CheckCircle size={14} />
+                                Listo
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             ))}

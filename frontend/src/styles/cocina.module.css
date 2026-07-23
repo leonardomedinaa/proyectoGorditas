@@ -200,9 +200,28 @@
   white-space: nowrap;
 }
 
+.comensal-badge {
+  margin-left: 8px;
+  font-size: clamp(13px, 1.2vw, 14px);
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: var(--bg-badge-blue, #e0f2fe);
+  color: var(--text-badge-blue, #0369a1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
 @media (max-width: 992px) {
   .nombre {
     font-size: 1.15rem;
+  }
+
+  .comensal-badge {
+    font-size: 0.95rem;
+    padding: 3px 8px;
   }
   
   .qty {
@@ -241,6 +260,12 @@
   .topbar-controls-cocina {
     margin-right: 0.5rem;
     gap: 0.4rem;
+  }
+
+  comensal-badge {
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    margin-left: 4px;
   }
 
   .ordenes-text-hide {
