@@ -90,7 +90,8 @@ class OrdenItemCreate(BaseModel):
     modificador_id: Optional[int] = None
     cantidad: int = 1
     comentario: Optional[str] = None
-    comensal: int = 1  # Por defecto si no se manda, será el comensal 1
+    comensal: Optional[str] = "C1"  # 👈 Cambiado a Optional[str] con valor por defecto "C1"
+    precio_unitario: Optional[float] = None  
 
 
 class OrdenItemOut(BaseModel):
@@ -100,10 +101,11 @@ class OrdenItemOut(BaseModel):
     modificador_id: Optional[int]
     modificador_nombre: Optional[str]
     cantidad: int
-    precio_unitario: float
+    precio_unitario: Optional[float] = None
     comentario: Optional[str]
     estado_cocina: str
     estacion: str
+    comensal: Optional[str] = "C1"  # 👈 Cambiado a Optional[str]
 
     class Config:
         from_attributes = True

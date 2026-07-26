@@ -52,6 +52,7 @@ def init_db():
             Producto(nombre="Menudo Chico", precio=130.0, estacion="menudo", stock=40),
             Producto(nombre="Menudo Mediano", precio=140.0, estacion="menudo", stock=40),
             Producto(nombre="Menudo Grande", precio=150.0, estacion="menudo", stock=40),
+            Producto(nombre="Menudo para Llevar", precio=0.0, estacion="menudo", stock=100),
             
             # --- ANTOJITOS Y ESPECIALES ---
             Producto(nombre="Huarache (Guiso y Queso Asadero)", precio=50.0, estacion="gorditas", stock=50),
@@ -120,7 +121,7 @@ def init_db():
                     )
 
         # Variantes de Menudo
-        for t in ["Menudo Chico", "Menudo Mediano", "Menudo Grande"]:
+        for t in ["Menudo Chico", "Menudo Mediano", "Menudo Grande", "Menudo para Llevar"]:
             if t in prod_map:
                 modificadores.extend([
                     Modificador(producto_id=prod_map[t], nombre="Con carne", tipo="variante", precio_extra=0.0),
