@@ -32,6 +32,7 @@ export default function Mesero() {
   const [modalOrden, setModalOrden] = useState(false)
   const [modalPago, setModalPago] = useState(null)   
   const [modalDivision, setModalDivision] = useState(null)
+  const [ordenACancelar, setOrdenACancelar] = useState(null)
 
   // Modos globales de la interfaz
   const [modoCobroActivo, setModoCobroActivo] = useState(false)
@@ -117,16 +118,17 @@ export default function Mesero() {
     })
     return unsub
   }, [])
-  const cancelarOrden = async (orden) => {
-  const confirmar = window.confirm(`¿Estás seguro de que deseas cancelar la Orden #${orden.id} de la ${orden.mesa_nombre}? Los productos se reincorporarán al inventario.`);
-  if (!confirmar) return;
-  try {
-      await api.post(`/ordenes/${orden.id}/cancelar`, { mesero_id: user.id });
-      setOrdenes(prev => prev.filter(o => o.id !== orden.id));
+  const cancelarOrden = async () => {
+    if (!ordenACancelar) return;
+    try {
+      await api.post(`/ordenes/${ordenACancelar.id}/cancelar`, { mesero_id: user.id });
+      setOrdenes(prev => prev.filter(o => o.id !== ordenACancelar.id));
       toast('Orden cancelada correctamente', 'info');
       cargarDatos();
     } catch (e) {
       toast(e.response?.data?.detail || e.message || 'Error al cancelar la orden', 'error');
+    } finally {
+      setOrdenACancelar(null);
     }
   };
 // ── Carrito ──
@@ -427,16 +429,8 @@ const agregarAlCarrito = (producto, modificador = null) => {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <strong style={{ color: 'var(--color-primary)', fontSize: '16px' }}>${orden.total.toFixed(2)}</strong>
                         <button 
-                              className={styles['btn-quitar']}
-                              style={{
-                                border: '1px solid #ef4444',
-                                color: '#ef4444',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                cursor: 'pointer'
-                              }}
-                              onClick={() => cancelarOrden(orden)}>🚫 Cancelar
+                              className={styles['btn-cancelar-orden']}
+                              onClick={() => setOrdenACancelar(orden)}>Cancelar
                           </button>
                       </div>
                     </div>
@@ -647,23 +641,6 @@ const agregarAlCarrito = (producto, modificador = null) => {
               width: '100%'
             }}
           />
-          <button
-            className={`${styles.btn} ${styles['btn-primary']}`}
-            style={{ marginTop: '8px' }}
-            onClick={() => {
-              const precioValido = parseFloat(precioInputModal);
-              if (!precioValido || precioValido <= 0) {
-                toast('Ingresa un precio válido mayor a $0', 'error');
-                return;
-              }
-              // Agrega directo al carrito si no selecciona ninguna variante específica
-              agregarAlCarrito({ ...prodPendiente, precio: precioValido });
-              setProdPendiente(null);
-              setPrecioInputModal('');
-            }}
-          >
-            Agregar sin variante (${parseFloat(precioInputModal || 0).toFixed(2)})
-          </button>
         </div>
       ) : (
         <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
@@ -900,6 +877,35 @@ const agregarAlCarrito = (producto, modificador = null) => {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CANCELAR ORDEN ── */}
+      {ordenACancelar && (
+        <div className={styles['modal-overlay']} onClick={() => setOrdenACancelar(null)}>
+          <div className={`${styles.modal} ${styles['modal-cancelar']}`} onClick={e => e.stopPropagation()}>
+
+            <p className={styles['modal-cancelar-text']}>
+              ¿Estás seguro de que deseas cancelar la <strong>Orden #{ordenACancelar.id}</strong> de la <strong>{ordenACancelar.mesa_nombre}</strong>? 
+              Los productos se reincorporarán al inventario.
+            </p>
+
+            <div className={styles['modal-cancelar-actions']}>
+              <button 
+                className={`${styles.btn} ${styles['btn-cancelar']}`} 
+                onClick={() => setOrdenACancelar(null)}
+              >
+                No, mantener
+              </button>
+              <button 
+                className={`${styles.btn} ${styles['btn-danger']}`} 
+                onClick={cancelarOrden}
+              >
+                Sí, cancelar orden
+              </button>
+            </div>
+
           </div>
         </div>
       )}
