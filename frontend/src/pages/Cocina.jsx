@@ -55,6 +55,10 @@ export default function Cocina() {
         toast(`🔔 Nueva comanda — ${msg.mesa}`, 'info', 5000)
         cargar()
       }
+      if (msg.tipo === 'orden_cancelada') {
+      toast(`⚠️ La Orden #${msg.orden_id} fue cancelada por el mesero`, 'warning', 5000)
+      setItems(prev => prev.filter(item => item.orden_id !== msg.orden_id))
+      }
       if (msg.tipo === 'cierre_turno_global') {
         toast('⚠️ El turno ha sido cerrado por el Administrador. Reiniciando estación...', 'warning', 5000)
         
@@ -236,7 +240,7 @@ export default function Cocina() {
                               {item.producto}
                               {item.comensal && (
                                 <span className={styles['comensal-badge']}>
-                                  C{item.comensal}
+                                  {!isNaN(item.comensal) ? `C${item.comensal}` : item.comensal}
                                 </span>
                               )}
                             </div>
