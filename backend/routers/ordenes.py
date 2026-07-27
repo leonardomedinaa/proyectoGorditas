@@ -68,6 +68,7 @@ def obtener_orden(orden_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/")
+@router.post("/")
 async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
     # Validar mesa
     mesa = db.query(Mesa).filter(Mesa.id == data.mesa_id).first()
@@ -84,17 +85,23 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
         producto = db.query(Producto).filter(Producto.id == item_data.producto_id).first()
         if not producto:
             raise HTTPException(status_code=404, detail=f"Producto {item_data.producto_id} no encontrado")
+        
+        # 1. Determinar el precio base (busca 'precio_unitario' o 'precio' enviado desde el frontend)
+        precio_frontend = getattr(item_data, 'precio_unitario', None) or getattr(item_data, 'precio', None)
+        if precio_frontend is not None and precio_frontend > 0:
+            precio = precio_frontend
+        else:
+            precio = producto.precio or 0.0
 
-        precio = producto.precio
-
-        # Aplicar modificador si existe
+        # 2. Aplicar modificador si existe
         if item_data.modificador_id:
             mod = db.query(Modificador).filter(Modificador.id == item_data.modificador_id).first()
             if mod:
-                precio += mod.precio_extra
-                if mod.descuento_pct > 0:
+                precio += (mod.precio_extra or 0.0)
+                if (mod.descuento_pct or 0) > 0:
                     precio = precio * (1 - mod.descuento_pct / 100)
 
+        # 3. Insertar el ítem a la orden
         item = OrdenItem(
             orden_id=orden.id,
             producto_id=item_data.producto_id,
@@ -257,6 +264,69 @@ async def actualizar_estado_item(orden_id: int, item_id: int, body: dict, db: Se
         "mesa": mesa_nombre,  # <--- ✨ AHORA SÍ LO MANDAMOS
     })
 
+@router.post("/{orden_id}/cancelar")
+async def cancelar_orden(orden_id: int, body: dict, db: Session = Depends(get_db)):
+    mesero_id = body.get("mesero_id")
+    
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden or orden.estado != "abierta":
+        raise HTTPException(status_code=400, detail="La orden no existe o ya no se encuentra abierta.")
+
+    if mesero_id and int(orden.mesero_id) != int(mesero_id):
+        raise HTTPException(
+            status_code=403, 
+            detail="Solo el mesero que tomó la orden tiene permiso para cancelarla."
+        )
+
+    # 1. Reintegrar stock de los productos
+    for item in orden.items:
+        if item.producto:
+            item.producto.stock += item.cantidad
+            mov = InventarioMovimiento(
+                producto_id=item.producto.id,
+                cantidad_delta=item.cantidad,
+                motivo="cancelacion"
+            )
+            db.add(mov)
+
+    # 2. Cambiar estado de la orden y liberar la mesa
+    orden.estado = "cancelada"
+    orden.cerrado_en = datetime.utcnow()
+    
+    mesa = orden.mesa
+    if mesa:
+        otras_abiertas = db.query(Orden).filter(
+            Orden.mesa_id == mesa.id, 
+            Orden.estado == "abierta", 
+            Orden.id != orden_id
+        ).count()
+        
+        if otras_abiertas == 0:
+            mesa.estado = "disponible"
+
+    db.commit()
+
+    # 3. Notificar a Cocina
+    estaciones_afectadas = set(item.producto.estacion for item in orden.items if item.producto and item.producto.estacion)
+    for estacion in estaciones_afectadas:
+        await manager.notify_cocina(estacion, {
+            "tipo": "orden_cancelada",
+            "orden_id": orden_id
+        })
+
+    # 4. Notificar a Meseros
+    await manager.notify_meseros({
+        "tipo": "orden_cerrada",
+        "orden_id": orden_id,
+        "mesa": {
+            "id": mesa.id,
+            "nombre": mesa.nombre,
+            "estado": mesa.estado,
+            "capacidad": mesa.capacidad
+        } if mesa else None
+    })
+
+    return {"ok": True, "mensaje": f"Orden #{orden_id} cancelada exitosamente."}
 
 @router.post("/{orden_id}/cerrar")
 async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = Depends(get_db)):
