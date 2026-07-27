@@ -27,6 +27,7 @@ export default function Mesero() {
   const [ordenes, setOrdenes] = useState([])
 
   // Modal states
+  const [precioInputModal, setPrecioInputModal] = useState('')
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [modalOrden, setModalOrden] = useState(false)
   const [modalPago, setModalPago] = useState(null)   
@@ -39,7 +40,7 @@ export default function Mesero() {
   const [carrito, setCarrito] = useState([])
   const [filtroEstacion, setFiltroEstacion] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
-  const [comensalActivo, setComensalActivo] = useState(1)
+  const [comensalActivo, setComensalActivo] = useState('C1')
 
   // Modal modificador
   const [prodPendiente, setProdPendiente] = useState(null)
@@ -116,29 +117,58 @@ export default function Mesero() {
     })
     return unsub
   }, [])
+  const cancelarOrden = async (orden) => {
+  const confirmar = window.confirm(`¿Estás seguro de que deseas cancelar la Orden #${orden.id} de la ${orden.mesa_nombre}? Los productos se reincorporarán al inventario.`);
+  if (!confirmar) return;
+  try {
+      await api.post(`/ordenes/${orden.id}/cancelar`, { mesero_id: user.id });
+      setOrdenes(prev => prev.filter(o => o.id !== orden.id));
+      toast('Orden cancelada correctamente', 'info');
+      cargarDatos();
+    } catch (e) {
+      toast(e.response?.data?.detail || e.message || 'Error al cancelar la orden', 'error');
+    }
+  };
+// ── Carrito ──
+const agregarAlCarrito = (producto, modificador = null) => {
+  const precioBase = producto.precio !== undefined ? producto.precio : 0
+  const etiquetaComensal = comensalActivo && String(comensalActivo).trim() !== ''? String(comensalActivo).trim(): 'C1'
+  const keyComensal = etiquetaComensal.replace(/\s+/g, '_')
+  const key = `${producto.id}_${modificador?.id ?? 'base'}_p${precioBase}_c${keyComensal}`
 
-  // ── Carrito ──
-  const agregarAlCarrito = (producto, modificador = null) => {
-    
-    const key = `${producto.id}_${modificador?.id ?? 'base'}_c${comensalActivo}`
-    setCarrito(prev => {
-      const exists = prev.find(c => c.key === key)
-      if (exists) return prev.map(c => c.key === key ? { ...c, cantidad: c.cantidad + 1 } : c)
-      let precio = producto.precio
-      if (modificador) {
-        precio += modificador.precio_extra || 0
-        if (modificador.descuento_pct > 0) precio = precio * (1 - modificador.descuento_pct / 100)
+  setCarrito(prev => {
+    const exists = prev.find(c => c.key === key)
+    if (exists) {
+      return prev.map(c => c.key === key ? { ...c, cantidad: c.cantidad + 1 } : c)
+    }
+
+    let precioFinal = precioBase
+    if (modificador) {
+      precioFinal += modificador.precio_extra || 0
+      if (modificador.descuento_pct > 0) {
+        precioFinal = precioFinal * (1 - modificador.descuento_pct / 100)
       }
-      return [...prev, { key, producto, modificador, cantidad: 1, precio, comentario: '', comensal: comensalActivo }]
-    })
-  }
+    }
+
+    return [
+      ...prev, 
+      { 
+        key, 
+        producto, 
+        modificador, 
+        cantidad: 1, 
+        precio: precioFinal, 
+        comentario: '', 
+        comensal: etiquetaComensal 
+      }
+    ]
+  })
+}
 
   const clickProducto = (prod) => {
-  // 1. Validamos si tiene cualquier modificador en su arreglo
-  const tieneModificadores = prod.modificadores && prod.modificadores.length > 0;
-  
-  // 2. O si el nombre incluye "birria" (por seguridad para forzar la ventana)
+  const tieneModificadores = prod.modificadores && prod.modificadores.length > 0;  
   const esBirria = prod.nombre?.toLowerCase().includes('birria') && !prod.nombre?.toLowerCase().includes('kg');
+  const esMenudoParaLlevar = prod.nombre?.toLowerCase().includes('menudo') && prod.nombre?.toLowerCase().includes('llevar');
 
   if (tieneModificadores || esBirria) {
     setProdPendiente(prod); // Esto levanta el modal
@@ -167,13 +197,14 @@ export default function Mesero() {
         cantidad: c.cantidad,
         comentario: c.comentario || null,
         comensal: c.comensal,
+        precio_unitario: c.precio,
       }))
       await api.post('/ordenes/', { mesa_id: mesaSeleccionada.id, mesero_id: user.id, items })
       toast('Comanda enviada a cocina', 'success')
       setCarrito([])
       setModalOrden(false)
       setMesaSeleccionada(null)
-      setComensalActivo(1)
+      setComensalActivo('C1')
       cargarDatos()
     } catch (e) {
       toast(e.message, 'error')
@@ -257,7 +288,6 @@ export default function Mesero() {
                     <span className={`${styles.dot} ${styles.disponible}`}></span> Disponible
                   </div>
                   
-                  {/* ✨ NUEVA LEYENDA AGREGADA AQUÍ: */}
                   <div className={styles['leyenda-item']}>
                     <span className={`${styles.dot}`} style={{ backgroundColor: 'var(--color-ordenando)' }}></span> Ordenando...
                   </div>
@@ -287,7 +317,7 @@ export default function Mesero() {
                   const orden = ordenDeMesa(mesa)
                   const esDeOtroMesero = orden && orden.mesero_id && Number(orden.mesero_id) !== Number(user.id);
                   
-                  // PARTE DEL PASO B: Declarar constante de bloqueo en tiempo real
+                  // Declarar constante de bloqueo en tiempo real
                   const estaBloqueadaPorOtro = mesa.estado === 'ordenando' && mesa.bloqueada_por && Number(mesa.bloqueada_por) !== Number(user.id);
                   const claseEstado = styles[mesa.estado] || styles.disponible;
 
@@ -301,7 +331,7 @@ export default function Mesero() {
                         ${(modoCobroActivo && (!orden || esDeOtroMesero)) || estaBloqueadaPorOtro ? styles['mesa-deshabilitada'] : ''}
                       `}
                       onClick={async () => {
-                        // PARTE DEL PASO B: Freno si la tiene otro compañero
+                        // Freno si la tiene otro compañero
                         if (estaBloqueadaPorOtro) {
                           toast('Otro mesero está tomando la orden en este momento ⏳', 'info');
                           return;
@@ -326,7 +356,7 @@ export default function Mesero() {
                             toast('Esta mesa no tiene cuentas activas por cobrar', 'warning');
                           }
                         } else {
-                          // PARTE DEL PASO B: Si está disponible, la bloqueamos proactivamente antes de abrir el modal
+                          // Si está disponible, la bloqueamos proactivamente antes de abrir el modal
                           if (mesa.estado === 'disponible') {
                             try {
                               await api.post(`/mesas/${mesa.id}/bloquear`, { mesero_id: user.id });
@@ -338,14 +368,14 @@ export default function Mesero() {
 
                           setMesaSeleccionada(mesa)
                           setCarrito([])
-                          setComensalActivo(1) 
+                          setComensalActivo(1)
                           setModalOrden(true)
                         }
                       }}
                     >
                       {/* Cuerpo de la Tarjeta (Icono, Nombre, Capacidad) */}
                       <div className={styles['mesa-body']}>
-                        {/* 3️⃣ PARTE DEL PASO B: Emoji dinámico con clase limpia */}
+                        {/*Emoji dinámico con clase limpia */}
                         <span className={styles['mesa-icon']}>{estaBloqueadaPorOtro ? '🔒' : '🪑'}</span>
                         <span className={styles['mesa-nombre']}>{mesa.nombre}</span>
                         <span className={styles['mesa-capacidad']}>Cap: {mesa.capacidad || 4}</span>
@@ -363,7 +393,7 @@ export default function Mesero() {
                       </div>
 
                       {/* Bloque de Estado Inferior */}
-                      {/* 3️⃣ PARTE DEL PASO B: Texto de aviso de bloqueo y fondo naranja si está en proceso */}
+                      {/* Texto de aviso de bloqueo y fondo naranja si está en proceso */}
                       <div 
                         className={`${styles['mesa-estado-block']} ${mesa.estado === 'ordenando' ? styles['mesa-estado-ordenando'] : ''}`}
                       >
@@ -396,11 +426,22 @@ export default function Mesero() {
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <strong style={{ color: 'var(--color-primary)', fontSize: '16px' }}>${orden.total.toFixed(2)}</strong>
+                        <button 
+                              className={styles['btn-quitar']}
+                              style={{
+                                border: '1px solid #ef4444',
+                                color: '#ef4444',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => cancelarOrden(orden)}>🚫 Cancelar
+                          </button>
                       </div>
                     </div>
                     
                     {[...orden.items]
-                      .sort((a, b) => (a.comensal || 1) - (b.comensal || 1))
                       .map(item => (
                         <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', padding: '4px 0' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
@@ -408,7 +449,7 @@ export default function Mesero() {
                             <span style={{ color: 'var(--text-main)', fontSize: '14px' }}>{item.producto_nombre}</span>
                             {item.comensal && (
                               <span className={styles['badge-blue']}>
-                                C{item.comensal}
+                                {!isNaN(item.comensal) ? `C${item.comensal}` : item.comensal}
                               </span>
                             )}
                           </div>
@@ -496,21 +537,21 @@ export default function Mesero() {
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                       Asignar productos a:
                     </span>
-                    <select 
+                    <input 
+                      type="text"
+                      placeholder="Ej. C1, Juan, Cumpleañero..."
                       value={comensalActivo} 
-                      onChange={e => setComensalActivo(Number(e.target.value))}
+                      onChange={e => setComensalActivo(e.target.value)}
                       className={styles['select-comensal']}
-                      style={{ background: 'var(--text-light)', border: '1px solid var(--border-neutral)' }}
-                    >
-                      {Array.from({length: mesaSeleccionada?.capacidad || 4}, (_, index) => {
-                        const numeroComensal = index + 1;
-                        return (
-                          <option key={numeroComensal} value={numeroComensal}>
-                            Comensal {numeroComensal}
-                          </option>
-                        );
-                      })}
-                    </select>
+                      style={{  
+                        background: 'var(--text-light)', 
+                        border: '1px solid var(--border-neutral)',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        width: '100%'
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -518,13 +559,16 @@ export default function Mesero() {
                   {carrito.length === 0
                     ? <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Agrega productos del menú</p>
                     : [...carrito]
-                        .sort((a, b) => a.comensal - b.comensal)
-                        .map(c => (
+                            .sort((a, b) => String(a.comensal).localeCompare(String(b.comensal)))
+                            .map(c => (
                           <div key={c.key} className={styles['carrito-item']} style={{ borderLeft: '3px solid var(--color-primary)', paddingLeft: '8px', flexDirection: 'column', alignItems: 'stretch', gap: '6px', borderBottom: '1px solid var(--border-neutral)', paddingBottom: '8px', marginBottom: '4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span className={`badge ${styles['badge-blue']}`} style={{ fontSize: '10px', padding: '2px 6px', fontWeight: 600 }}>
-                                👤 Comensal {c.comensal}
-                              </span>
+                              <span 
+                                  className={`badge ${styles['badge-blue']}`} 
+                                  style={{ fontSize: '10px', padding: '2px 6px', fontWeight: 600, marginLeft: '6px' }}
+                                >
+                                  👤 {c.comensal}
+                                </span>
                               <span className={styles['ci-precio']} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>${(c.precio * c.checkpoint || c.precio * c.amount || c.precio * c.cantidad).toFixed(2)}</span>
                             </div>
 
@@ -571,7 +615,7 @@ export default function Mesero() {
 
 {/* ── MODAL MODIFICADORES ── */}
 {prodPendiente && (
-  <div className={styles['modal-overlay']} onClick={() => setProdPendiente(null)}>
+  <div className={styles['modal-overlay']} onClick={() => { setProdPendiente(null); setPrecioInputModal(''); }}>
     <div className={styles.modal} style={{ maxWidth: 500, width: '95vw' }} onClick={e => e.stopPropagation()}>
       
       {/* Encabezado */}
@@ -579,20 +623,62 @@ export default function Mesero() {
         <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
           Opciones — {prodPendiente.nombre}
         </h2>
-        <button onClick={() => setProdPendiente(null)} className={styles['btn-cerrar-fino']}>✕</button>
+        <button onClick={() => { setProdPendiente(null); setPrecioInputModal(''); }} className={styles['btn-cerrar-fino']}>✕</button>
       </div>
 
-      <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
+      {/* 🍲 CONDICIÓN ESPECIAL: MENUDO PARA LLEVAR O PRECIO $0 */}
+      {(prodPendiente.nombre?.toLowerCase().includes('menudo') && prodPendiente.nombre?.toLowerCase().includes('llevar')) || prodPendiente.precio === 0 ? (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: 500 }}>
+            Ingresa el precio capturado del Menudo:
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Ej. 120.00"
+            value={precioInputModal}
+            onChange={e => setPrecioInputModal(e.target.value)}
+            style={{
+              padding: '10px 14px',
+              fontSize: '16px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-neutral)',
+              background: 'var(--text-light)',
+              width: '100%'
+            }}
+          />
+          <button
+            className={`${styles.btn} ${styles['btn-primary']}`}
+            style={{ marginTop: '8px' }}
+            onClick={() => {
+              const precioValido = parseFloat(precioInputModal);
+              if (!precioValido || precioValido <= 0) {
+                toast('Ingresa un precio válido mayor a $0', 'error');
+                return;
+              }
+              // Agrega directo al carrito si no selecciona ninguna variante específica
+              agregarAlCarrito({ ...prodPendiente, precio: precioValido });
+              setProdPendiente(null);
+              setPrecioInputModal('');
+            }}
+          >
+            Agregar sin variante (${parseFloat(precioInputModal || 0).toFixed(2)})
+          </button>
+        </div>
+      ) : (
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
+      )}
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', padding: '10px 0', width: '100%' }}>
         
-        {/* ✨ CONDICIÓN: El botón Normal / Sencillo SOLO se renderiza si es un producto de birria */}
+        {/* Botón Normal / Sencillo para Birria */}
         {prodPendiente.nombre?.toLowerCase().includes('birria') && (
           <button 
             className={styles['variante-item-btn']} 
             onClick={() => { 
               agregarAlCarrito(prodPendiente); 
               setProdPendiente(null); 
+              setPrecioInputModal('');
             }}
           >
             <span>Normal / Sencillo</span>
@@ -600,27 +686,56 @@ export default function Mesero() {
           </button>
         )}
 
-        {/* Variantes locales (Guisos, tamaños, etc., para los demás productos) */}
+        {/* Variantes locales (Guisos, Con carne, Sin pata, etc.) */}
         {prodPendiente.modificadores?.filter(m => !m.global_mod).map(mod => {
-          let precio = prodPendiente.precio + (mod.precio_extra || 0)
-          if (mod.descuento_pct > 0) precio = precio * (1 - mod.descuento_pct / 100)
+          // Solo aplica a "menudo para llevar" o precio 0
+          const esMenudoAbierto = (prodPendiente.nombre?.toLowerCase().includes('menudo') && prodPendiente.nombre?.toLowerCase().includes('llevar')) || prodPendiente.precio === 0;
+          const precioInputFloat = parseFloat(precioInputModal) || 0;
+
+          // Si es menudo abierto y capturó precio, usamos ese precio base; de lo contrario el del producto
+          const precioBase = (esMenudoAbierto && precioInputFloat > 0) ? precioInputFloat : prodPendiente.precio;
+          
+          let precioMostrar = precioBase + (mod.precio_extra || 0);
+          if (mod.descuento_pct > 0) precioMostrar = precioMostrar * (1 - mod.descuento_pct / 100);
+
           return (
-            <button key={mod.id} className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, mod); setProdPendiente(null) }}>
+            <button 
+              key={mod.id} 
+              className={styles['variante-item-btn']} 
+              onClick={() => { 
+                if (esMenudoAbierto && precioInputFloat <= 0) {
+                  toast('Ingresa primero el precio del menudo', 'error');
+                  return;
+                }
+                const prodAjustado = { ...prodPendiente, precio: precioBase };
+                agregarAlCarrito(prodAjustado, mod); 
+                setProdPendiente(null);
+                setPrecioInputModal('');
+              }}
+            >
               <span>
                 {mod.nombre}
                 {mod.descuento_pct > 0 && <span className={`badge ${styles['badge-green']}`} style={{ marginLeft: 6 }}>-{mod.descuento_pct}%</span>}
                 {mod.precio_extra > 0 && <span className={`badge ${styles['badge-amber']}`} style={{ marginLeft: 6 }}>+${mod.precio_extra}</span>}
               </span>
-              <span>${precio.toFixed(2)}</span>
+              <span>${precioMostrar.toFixed(2)}</span>
             </button>
           )
         })}
 
-        {/* Extras globales (Como el Extra queso de la birria) */}
+        {/* Extras globales */}
         {prodPendiente.modificadores?.filter(m => m.global_mod).map(modGlobal => {
-          let precio = prodPendiente.precio + (modGlobal.precio_extra || 0)
+          let precio = prodPendiente.precio + (modGlobal.precio_extra || 0);
           return (
-            <button key={modGlobal.id} className={styles['variante-item-btn']} onClick={() => { agregarAlCarrito(prodPendiente, modGlobal); setProdPendiente(null) }}>
+            <button 
+              key={modGlobal.id} 
+              className={styles['variante-item-btn']} 
+              onClick={() => { 
+                agregarAlCarrito(prodPendiente, modGlobal); 
+                setProdPendiente(null);
+                setPrecioInputModal('');
+              }}
+            >
               <span>Con {modGlobal.nombre}</span>
               <span>${precio.toFixed(2)}</span>
             </button>
@@ -667,7 +782,7 @@ export default function Mesero() {
                     return (
                       <div key={num} className={styles['comensal-block-cuenta']}>
                         <div className={styles['comensal-block-header']}>
-                          <span>👤 Comensal {num}</span>
+                          <span>👤 {num}</span>
                           <span className={styles['subtotal-txt']}>${subtotalComensal.toFixed(2)}</span>
                         </div>
                         
