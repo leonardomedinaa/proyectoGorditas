@@ -32,6 +32,8 @@ export default function Mesero() {
   const [modalOrden, setModalOrden] = useState(false)
   const [modalPago, setModalPago] = useState(null)   
   const [modalDivision, setModalDivision] = useState(null)
+  const [ordenACancelar, setOrdenACancelar] = useState(null)
+  const [itemACancelar, setItemACancelar] = useState(null) // Guardará { ordenId, item }
 
   // Modos globales de la interfaz
   const [modoCobroActivo, setModoCobroActivo] = useState(false)
@@ -68,35 +70,35 @@ export default function Mesero() {
     ordenesRef.current = ordenes
   }, [ordenes])
 
-  useEffect(() => {
+useEffect(() => {
     cargarDatos()
     const unsub = createWS(`mesero_${user.id}`, msg => {
-      console.log("¡Llegó un mensaje de la cocina!", msg);
+      console.log("¡Llegó un mensaje por WS!", msg);
+
       if (msg.tipo === 'cierre_turno_global') {
         toast('⚠️ El turno ha sido cerrado por el Administrador. Reiniciando sesión...', 'warning', 5000)
-        
         localStorage.removeItem('token')
         sessionStorage.clear()
-        
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 3000)
+        setTimeout(() => { window.location.href = '/login' }, 3000)
         return
       }
+
       if (msg.tipo === 'mesa_actualizada') {
         setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
+
       if (msg.tipo === 'orden_creada') {
         setOrdenes(prev => [...prev.filter(o => o.id !== msg.orden.id), msg.orden])
       }
+
       if (msg.tipo === 'orden_closed' || msg.tipo === 'orden_cerrada') {
         setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
+
       if (msg.tipo === 'item_listo') {
         const miOrden = ordenesRef.current.find(o => o.id === msg.orden_id);
         const esMiOrden = miOrden && Number(miOrden.mesero_id) === Number(user.id);
-
         const identificadorMesa = msg.mesa 
           ? (msg.mesa.toString().toLowerCase().includes('mesa') ? msg.mesa : `Mesa ${msg.mesa}`) 
           : 'Mesa ?';
@@ -114,21 +116,55 @@ export default function Mesero() {
           return { ...o, items: o.items.map(i => i.id === msg.item_id ? { ...i, estado_cocina: msg.estado_cocina } : i) }
         }))
       }
+
+      // 🔴 AQUÍ VA EL EVENTO NUEVO DE ÍTEM CANCELADO
+      if (msg.tipo === 'item_cancelado') {
+        toast(`Ítem cancelado en Orden #${msg.orden_id}`, 'warning')
+
+        if (msg.orden_cancelada_completa) {
+          setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
+          cargarDatos() // Refresca mesas para reflejar que quedó libre
+        } else {
+          setOrdenes(prev => prev.map(o => {
+            if (o.id !== msg.orden_id) return o
+            return {
+              ...o,
+              total: msg.nuevo_total,
+              items: o.items.map(i => i.id === msg.item_id ? { ...i, estado_cocina: 'cancelado' } : i)
+            }
+          }))
+        }
+      }
     })
     return unsub
   }, [])
-  const cancelarOrden = async (orden) => {
-  const confirmar = window.confirm(`¿Estás seguro de que deseas cancelar la Orden #${orden.id} de la ${orden.mesa_nombre}? Los productos se reincorporarán al inventario.`);
-  if (!confirmar) return;
-  try {
-      await api.post(`/ordenes/${orden.id}/cancelar`, { mesero_id: user.id });
-      setOrdenes(prev => prev.filter(o => o.id !== orden.id));
+  const cancelarOrden = async () => {
+    if (!ordenACancelar) return;
+    try {
+      await api.post(`/ordenes/${ordenACancelar.id}/cancelar`, { mesero_id: user.id });
       toast('Orden cancelada correctamente', 'info');
+      setOrdenes(prev => prev.filter(o => o.id !== ordenACancelar.id));
       cargarDatos();
     } catch (e) {
       toast(e.response?.data?.detail || e.message || 'Error al cancelar la orden', 'error');
+    } finally {
+      setOrdenACancelar(null);
     }
   };
+  const cancelarItem = async () => {
+    if (!itemACancelar) return
+    try {
+      await api.post(`/ordenes/${itemACancelar.ordenId}/items/${itemACancelar.item.id}/cancelar`, {
+        mesero_id: user.id
+      })
+      toast('Platillo cancelado correctamente', 'info')
+      // No hace falta llamar a cargarDatos() aquí porque el WS se encarga de actualizar el estado
+    } catch (e) {
+      toast(e.response?.data?.detail || e.message || 'Error al cancelar el platillo', 'error')
+    } finally {
+      setItemACancelar(null)
+    }
+  }
 // ── Carrito ──
 const agregarAlCarrito = (producto, modificador = null) => {
   const precioBase = producto.precio !== undefined ? producto.precio : 0
@@ -427,21 +463,14 @@ const agregarAlCarrito = (producto, modificador = null) => {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <strong style={{ color: 'var(--color-primary)', fontSize: '16px' }}>${orden.total.toFixed(2)}</strong>
                         <button 
-                              className={styles['btn-quitar']}
-                              style={{
-                                border: '1px solid #ef4444',
-                                color: '#ef4444',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                cursor: 'pointer'
-                              }}
-                              onClick={() => cancelarOrden(orden)}>🚫 Cancelar
-                          </button>
+                          className={styles['btn-cancelar-orden']}
+                          onClick={() => setOrdenACancelar(orden)}>Cancelar Orden
+                        </button>
                       </div>
                     </div>
                     
                     {[...orden.items]
+                      .filter(item => item.estado_cocina !== 'cancelado') // Oculta platillos ya cancelados
                       .map(item => (
                         <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', padding: '4px 0' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
@@ -453,13 +482,23 @@ const agregarAlCarrito = (producto, modificador = null) => {
                               </span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className={`badge ${item.estado_cocina === 'listo' ? styles['badge-green'] : item.estado_cocina === 'preparando' ? styles['badge-amber'] : styles['badge-gray']}`}>
                               {(item.estado_cocina || 'pendiente').toUpperCase()}
                             </span>
                             <span style={{ color: 'var(--text-main)', fontSize: '14px', fontWeight: 500 }}>
                               ${((item.precio_unitario || 0) * item.cantidad).toFixed(2)}
                             </span>
+
+                            {/* ❌ BOTÓN PARA CANCELAR ÍTEM INDIVIDUAL */}
+                            <button 
+                              className={styles['btn-quitar']} 
+                              style={{ padding: '2px 6px', fontSize: '12px', cursor: 'pointer' }}
+                              onClick={() => setItemACancelar({ ordenId: orden.id, item })}
+                              title="Cancelar este platillo"
+                            >
+                              ✕
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -647,23 +686,6 @@ const agregarAlCarrito = (producto, modificador = null) => {
               width: '100%'
             }}
           />
-          <button
-            className={`${styles.btn} ${styles['btn-primary']}`}
-            style={{ marginTop: '8px' }}
-            onClick={() => {
-              const precioValido = parseFloat(precioInputModal);
-              if (!precioValido || precioValido <= 0) {
-                toast('Ingresa un precio válido mayor a $0', 'error');
-                return;
-              }
-              // Agrega directo al carrito si no selecciona ninguna variante específica
-              agregarAlCarrito({ ...prodPendiente, precio: precioValido });
-              setProdPendiente(null);
-              setPrecioInputModal('');
-            }}
-          >
-            Agregar sin variante (${parseFloat(precioInputModal || 0).toFixed(2)})
-          </button>
         </div>
       ) : (
         <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 13 }}>Selecciona una variante:</p>
@@ -900,6 +922,52 @@ const agregarAlCarrito = (producto, modificador = null) => {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+        {/* ── MODAL CANCELAR ÍTEM INDIVIDUAL ── */}
+        {itemACancelar && (
+          <div className={styles['modal-overlay']} onClick={() => setItemACancelar(null)}>
+            <div className={`${styles.modal} ${styles['modal-cancelar']}`} onClick={e => e.stopPropagation()}>
+              <p className={styles['modal-cancelar-text']}>
+                ¿Deseas cancelar <strong>{itemACancelar.item.cantidad}x {itemACancelar.item.producto_nombre}</strong> de la orden #{itemACancelar.ordenId}?
+              </p>
+              <div className={styles['modal-cancelar-actions']}>
+                <button className={`${styles.btn} ${styles['btn-cancelar']}`} onClick={() => setItemACancelar(null)}>
+                  No, conservar
+                </button>
+                <button className={`${styles.btn} ${styles['btn-danger']}`} onClick={cancelarItem}>
+                  Sí, cancelar platillo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      {/* ── MODAL CANCELAR ORDEN ── */}
+      {ordenACancelar && (
+        <div className={styles['modal-overlay']} onClick={() => setOrdenACancelar(null)}>
+          <div className={`${styles.modal} ${styles['modal-cancelar']}`} onClick={e => e.stopPropagation()}>
+
+            <p className={styles['modal-cancelar-text']}>
+              ¿Estás seguro de que deseas cancelar la <strong>Orden #{ordenACancelar.id}</strong> de la <strong>{ordenACancelar.mesa_nombre}</strong>? 
+              Los productos se reincorporarán al inventario.
+            </p>
+
+            <div className={styles['modal-cancelar-actions']}>
+              <button 
+                className={`${styles.btn} ${styles['btn-cancelar']}`} 
+                onClick={() => setOrdenACancelar(null)}
+              >
+                No, mantener
+              </button>
+              <button 
+                className={`${styles.btn} ${styles['btn-danger']}`} 
+                onClick={cancelarOrden}
+              >
+                Sí, cancelar orden
+              </button>
+            </div>
+
           </div>
         </div>
       )}

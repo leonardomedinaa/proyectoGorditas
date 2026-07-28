@@ -264,69 +264,121 @@ async def actualizar_estado_item(orden_id: int, item_id: int, body: dict, db: Se
         "mesa": mesa_nombre,  # <--- ✨ AHORA SÍ LO MANDAMOS
     })
 
-@router.post("/{orden_id}/cancelar")
-async def cancelar_orden(orden_id: int, body: dict, db: Session = Depends(get_db)):
-    mesero_id = body.get("mesero_id")
-    
+# 1. CANCELAR ÍTEM INDIVIDUAL
+# Nota: Aceptamos "items" (plural). Asegúrate de que el frontend llame a /ordenes/X/items/Y/cancelar
+@router.post("/{orden_id}/items/{item_id}/cancelar")
+async def cancelar_item_orden(
+    orden_id: int, 
+    item_id: int, 
+    data: dict = None,
+    db: Session = Depends(get_db)
+):
     orden = db.query(Orden).filter(Orden.id == orden_id).first()
-    if not orden or orden.estado != "abierta":
-        raise HTTPException(status_code=400, detail="La orden no existe o ya no se encuentra abierta.")
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
 
-    if mesero_id and int(orden.mesero_id) != int(mesero_id):
-        raise HTTPException(
-            status_code=403, 
-            detail="Solo el mesero que tomó la orden tiene permiso para cancelarla."
-        )
+    item = db.query(OrdenItem).filter(OrdenItem.id == item_id, OrdenItem.orden_id == orden_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Ítem no encontrado")
 
-    # 1. Reintegrar stock de los productos
-    for item in orden.items:
-        if item.producto:
-            item.producto.stock += item.cantidad
+    if item.estado_cocina == "cancelado":
+        raise HTTPException(status_code=400, detail="El ítem ya está cancelado")
+
+    producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
+
+    if item.estado_cocina in ["preparando", "listo"]:
+        if producto:
+            producto.stock += item.cantidad
             mov = InventarioMovimiento(
-                producto_id=item.producto.id,
+                producto_id=producto.id,
                 cantidad_delta=item.cantidad,
-                motivo="cancelacion"
+                motivo="cancelacion_platillo"
             )
             db.add(mov)
 
-    # 2. Cambiar estado de la orden y liberar la mesa
-    orden.estado = "cancelada"
-    orden.cerrado_en = datetime.utcnow()
+    item.estado_cocina = "cancelado"
     
-    mesa = orden.mesa
-    if mesa:
-        otras_abiertas = db.query(Orden).filter(
-            Orden.mesa_id == mesa.id, 
-            Orden.estado == "abierta", 
-            Orden.id != orden_id
-        ).count()
-        
-        if otras_abiertas == 0:
-            mesa.estado = "disponible"
+    items_activos = [i for i in orden.items if i.estado_cocina != "cancelado"]
+    orden.total = sum((i.precio_unitario or 0.0) * i.cantidad for i in items_activos)
+
+    orden_cancelada_completa = False
+    if len(items_activos) == 0:
+        orden.estado = "cancelada"
+        orden_cancelada_completa = True
+        if orden.mesa:
+            orden.mesa.estado = "disponible"
 
     db.commit()
 
-    # 3. Notificar a Cocina
-    estaciones_afectadas = set(item.producto.estacion for item in orden.items if item.producto and item.producto.estacion)
-    for estacion in estaciones_afectadas:
-        await manager.notify_cocina(estacion, {
-            "tipo": "orden_cancelada",
-            "orden_id": orden_id
-        })
+    payload = {
+        "tipo": "item_cancelado",
+        "orden_id": orden.id,
+        "item_id": item.id,
+        "producto_nombre": producto.nombre if producto else "",
+        "orden_cancelada_completa": orden_cancelada_completa,
+        "nuevo_total": orden.total
+    }
+    
+    await manager.notify_meseros(payload)
+    if producto and producto.estacion:
+        await manager.notify_cocina(producto.estacion, payload)
 
-    # 4. Notificar a Meseros
-    await manager.notify_meseros({
-        "tipo": "orden_cerrada",
-        "orden_id": orden_id,
+    return {"status": "ok", "orden_cancelada_completa": orden_cancelada_completa}
+
+
+# 2. CANCELAR ORDEN COMPLETA
+@router.post("/{orden_id}/cancelar")
+async def cancelar_orden_completa(
+    orden_id: int, 
+    data: dict = None,
+    db: Session = Depends(get_db)
+):
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    if orden.estado == "cancelada":
+        raise HTTPException(status_code=400, detail="La orden ya fue cancelada previamente")
+
+    for item in orden.items:
+        if item.estado_cocina in ["preparando", "listo"]:
+            producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
+            if producto:
+                producto.stock += item.cantidad
+                mov = InventarioMovimiento(
+                    producto_id=producto.id,
+                    cantidad_delta=item.cantidad,
+                    motivo="cancelacion_orden"
+                )
+                db.add(mov)
+        item.estado_cocina = "cancelado"
+
+    orden.estado = "cancelada"
+    if orden.mesa:
+        orden.mesa.estado = "disponible"
+
+    db.commit()
+
+    payload_meseros = {
+        "tipo": "orden_cancelada",
+        "orden_id": orden.id,
         "mesa": {
-            "id": mesa.id,
-            "nombre": mesa.nombre,
-            "estado": mesa.estado,
-            "capacidad": mesa.capacidad
-        } if mesa else None
-    })
+            "id": orden.mesa.id,
+            "nombre": orden.mesa.nombre,
+            "estado": orden.mesa.estado
+        } if orden.mesa else None
+    }
+    await manager.notify_meseros(payload_meseros)
 
-    return {"ok": True, "mensaje": f"Orden #{orden_id} cancelada exitosamente."}
+    payload_cocina = {"tipo": "orden_cancelada", "orden_id": orden.id}
+    estaciones_afectadas = set(
+        item.producto.estacion for item in orden.items 
+        if item.producto and item.producto.estacion
+    )
+    for estacion in estaciones_afectadas:
+        await manager.notify_cocina(estacion, payload_cocina)
+
+    return {"status": "ok", "mensaje": f"Orden #{orden_id} cancelada"}
 
 @router.post("/{orden_id}/cerrar")
 async def cerrar_orden(orden_id: int, data: CerrarOrdenRequest, db: Session = Depends(get_db)):
