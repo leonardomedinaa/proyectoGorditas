@@ -44,21 +44,37 @@ export default function Cocina() {
     } catch { toast('Error al cargar comandas', 'error') }
   }, [estacion, toast])
 
-  useEffect(() => {
+useEffect(() => {
     cargar()
     const room = `cocina_${estacion}`
     
     const unsub = createWS(room, msg => {
       console.log("📩 Mensaje recibido por WS:", msg)
+      
       if (msg.tipo === 'nueva_comanda') {
         beep()
         toast(`🔔 Nueva comanda — ${msg.mesa}`, 'info', 5000)
         cargar()
       }
+
       if (msg.tipo === 'orden_cancelada') {
-      toast(`⚠️ La Orden #${msg.orden_id} fue cancelada por el mesero`, 'warning', 5000)
-      setItems(prev => prev.filter(item => item.orden_id !== msg.orden_id))
+        toast(`⚠️ La Orden #${msg.orden_id} fue cancelada por el mesero`, 'warning', 5000)
+        setItems(prev => prev.filter(item => item.orden_id !== msg.orden_id))
       }
+
+      // 🛑 NUEVO EVENTO: CANCELACIÓN DE ÍTEM INDIVIDUAL
+      if (msg.tipo === 'item_cancelado') {
+        toast(`⚠️ Platillo cancelado: "${msg.producto_nombre}" en Orden #${msg.orden_id}`, 'warning', 5000)
+        
+        if (msg.orden_cancelada_completa) {
+          // Si era el último ítem de la comanda, removemos toda la orden
+          setItems(prev => prev.filter(item => item.orden_id !== msg.orden_id))
+        } else {
+          // Si solo fue un ítem, quitamos únicamente ese registro de la vista
+          setItems(prev => prev.filter(item => item.item_id !== msg.item_id))
+        }
+      }
+
       if (msg.tipo === 'cierre_turno_global') {
         toast('⚠️ El turno ha sido cerrado por el Administrador. Reiniciando estación...', 'warning', 5000)
         
@@ -70,9 +86,11 @@ export default function Cocina() {
         }, 3000)
       }
     })
+
     const intervalo = setInterval(() => {
       cargar()
     }, 5000)
+
     return () => {
       unsub()
       clearInterval(intervalo)
@@ -114,12 +132,14 @@ export default function Cocina() {
     }
   }
 
-  const porOrden = items.reduce((acc, item) => {
-    const key = item.orden_id
-    if (!acc[key]) acc[key] = { orden_id: item.orden_id, mesa: item.mesa, items: [] }
-    acc[key].items.push(item)
-    return acc
-  }, {})
+  const porOrden = items
+    .filter(item => item.estado_cocina !== 'cancelado') // Oculta ítems cancelados
+    .reduce((acc, item) => {
+      const key = item.orden_id
+      if (!acc[key]) acc[key] = { orden_id: item.orden_id, mesa: item.mesa, items: [] }
+      acc[key].items.push(item)
+      return acc
+    }, {})
 
   const grupos = Object.values(porOrden)
 
