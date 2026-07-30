@@ -180,6 +180,87 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
     await manager.notify_meseros({"tipo": "orden_creada", "orden": orden_out})
     return orden_out
 
+@router.put("/{orden_id}/items/{item_id}/cantidad")
+async def modificar_cantidad_item(
+    orden_id: int,
+    item_id: int,
+    data: dict,  # Recibe {"nueva_cantidad": X, "mesero_id": Y}
+    db: Session = Depends(get_db)
+):
+    nueva_cantidad = int(data.get("nueva_cantidad", 0))
+    if nueva_cantidad <= 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="La cantidad debe ser al menos 1. Si deseas cancelar todo el ítem, usa la opción de cancelar."
+        )
+
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden or orden.estado != "abierta":
+        raise HTTPException(status_code=404, detail="Orden no encontrada o cerrada")
+
+    item = db.query(OrdenItem).filter(OrdenItem.id == item_id, OrdenItem.orden_id == orden_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Ítem no encontrado en esta orden")
+
+    if item.estado_cocina == "cancelado":
+        raise HTTPException(status_code=400, detail="No se puede modificar la cantidad de un ítem cancelado")
+
+    diferencia = nueva_cantidad - item.cantidad
+    if diferencia == 0:
+        return {"status": "ok", "mensaje": "Sin cambios en la cantidad"}
+
+    producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
+
+    # Reajustar inventario según el cambio de cantidad
+    if producto:
+        if diferencia > 0:
+            # Si quiere más piezas, validamos que haya suficiente stock disponible
+            if producto.stock < diferencia:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Stock insuficiente. Solo quedan {producto.stock} disponibles."
+                )
+            producto.stock -= diferencia
+            motivo = "incremento_cantidad_orden"
+        else:
+            # Si reduce la cantidad, devolvemos las piezas sobrantes al inventario
+            producto.stock += abs(diferencia)
+            motivo = "reduccion_cantidad_orden"
+
+        db.add(InventarioMovimiento(
+        producto_id=producto.id,
+        cantidad_delta=-diferencia,
+        motivo=motivo
+    ))
+
+    # Actualizar la cantidad en la orden
+    item.cantidad = nueva_cantidad
+
+    # Recalcular total de la orden excluyendo los cancelados
+    items_activos = [i for i in orden.items if i.estado_cocina != "cancelado"]
+    orden.total = sum((i.precio_unitario or 0.0) * i.cantidad for i in items_activos)
+
+    db.commit()
+    nombre_mesa = orden.mesa.nombre if (orden.mesa and orden.mesa.nombre) else f"Mesa {orden.mesa_id}"
+    payload = {
+        "tipo": "item_cantidad_modificada",
+        "orden_id": orden.id,
+        "item_id": item.id,
+        "nueva_cantidad": item.cantidad,
+        "nuevo_total": orden.total,
+        "producto_nombre": producto.nombre if producto else "",
+        "mesa": nombre_mesa 
+    }
+
+    await manager.notify_meseros(payload)
+    if producto and producto.estacion:
+        await manager.notify_cocina(producto.estacion, payload)
+
+    return {
+        "status": "ok", 
+        "nueva_cantidad": item.cantidad, 
+        "nuevo_total": orden.total
+    }
 
 @router.post("/{orden_id}/agregar-items")
 async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Depends(get_db)):

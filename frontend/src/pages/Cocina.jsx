@@ -56,14 +56,23 @@ useEffect(() => {
         toast(`🔔 Nueva comanda — ${msg.mesa}`, 'info', 5000)
         cargar()
       }
+      if (msg.tipo === 'item_cantidad_modificada') {
+        beep()
+        const comandaEncontrada = items.find(i => i.orden_id === msg.orden_id)
+        const nombreMesa = msg.mesa || comandaEncontrada?.mesa || `Orden #${msg.orden_id}`
+        toast(`🔔 Se Mofidico una orden de la mesa — ${msg.mesa}`, 'info', 5000)
+        cargar()
+      }
 
       if (msg.tipo === 'orden_cancelada') {
+        beep()
         toast(`⚠️ La Orden #${msg.orden_id} fue cancelada por el mesero`, 'warning', 5000)
         setItems(prev => prev.filter(item => item.orden_id !== msg.orden_id))
       }
 
       // 🛑 NUEVO EVENTO: CANCELACIÓN DE ÍTEM INDIVIDUAL
       if (msg.tipo === 'item_cancelado') {
+        beep()
         toast(`⚠️ Platillo cancelado: "${msg.producto_nombre}" en Orden #${msg.orden_id}`, 'warning', 5000)
         
         if (msg.orden_cancelada_completa) {
