@@ -95,7 +95,6 @@ useEffect(() => {
         setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
         if (msg.mesa) setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
       }
-
       if (msg.tipo === 'item_listo') {
         const miOrden = ordenesRef.current.find(o => o.id === msg.orden_id);
         const esMiOrden = miOrden && Number(miOrden.mesero_id) === Number(user.id);
@@ -116,14 +115,28 @@ useEffect(() => {
           return { ...o, items: o.items.map(i => i.id === msg.item_id ? { ...i, estado_cocina: msg.estado_cocina } : i) }
         }))
       }
-
+      if (msg.tipo === 'item_cantidad_modificada') {
+        setOrdenes(prev => prev.map(o => {
+          if (o.id !== msg.orden_id) return o
+          return {
+            ...o,
+            total: msg.nuevo_total,
+            items: o.items.map(i => i.id === msg.item_id ? { ...i, cantidad: msg.nueva_cantidad } : i)
+          }
+        }))
+      }
       // 🔴 AQUÍ VA EL EVENTO NUEVO DE ÍTEM CANCELADO
       if (msg.tipo === 'item_cancelado') {
         toast(`Ítem cancelado en Orden #${msg.orden_id}`, 'warning')
 
         if (msg.orden_cancelada_completa) {
           setOrdenes(prev => prev.filter(o => o.id !== msg.orden_id))
-          cargarDatos() // Refresca mesas para reflejar que quedó libre
+          
+          // Si la API te envía la mesa liberada en el evento `msg.mesa`, 
+          // actualizas solo la mesa sin llamar a cargarDatos():
+          if (msg.mesa) {
+            setMesas(prev => prev.map(m => m.id === msg.mesa.id ? { ...m, ...msg.mesa } : m))
+          }
         } else {
           setOrdenes(prev => prev.map(o => {
             if (o.id !== msg.orden_id) return o
@@ -138,6 +151,7 @@ useEffect(() => {
     })
     return unsub
   }, [])
+
   const cancelarOrden = async () => {
     if (!ordenACancelar) return;
     try {
@@ -306,7 +320,45 @@ const agregarAlCarrito = (producto, modificador = null) => {
     { id: 'mesas', label: 'Mesas', icon: '🪑' },
     { id: 'ordenes', label: 'Mis Órdenes', icon: '📋' },
   ]
+const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
+  if (nuevaCantidad <= 0) return
+  try {
+    const res = await api.put(`/ordenes/${ordenId}/items/${itemId}/cantidad`, {
+      nueva_cantidad: nuevaCantidad,
+      mesero_id: user.id
+    })
 
+    toast('Cantidad modificada', 'success')
+
+    // Extraemos valores asegurando que existan
+    const nuevoTotal = res.data?.nuevo_total ?? res.data?.total
+    const nuevaCant = res.data?.nueva_cantidad ?? nuevaCantidad
+
+    setOrdenes(prev => prev.map(o => {
+      if (Number(o.id) !== Number(ordenId)) return o
+
+      return {
+        ...o,
+        // Si por algo no viene el total, se recalcula localmente para evitar NaN
+        total: nuevoTotal !== undefined && !isNaN(nuevoTotal) 
+          ? Number(nuevoTotal) 
+          : o.items.reduce((acc, item) => {
+              const cant = Number(item.id) === Number(itemId) ? nuevaCant : item.cantidad
+              return item.estado_cocina !== 'cancelado' ? acc + ((item.precio_unitario || 0) * cant) : acc
+            }, 0),
+
+        items: o.items.map(i => 
+          Number(i.id) === Number(itemId) 
+            ? { ...i, cantidad: Number(nuevaCant) } 
+            : i
+        )
+      }
+    }))
+  } catch (e) {
+    console.error("Error al modificar cantidad:", e)
+    toast(e.response?.data?.detail || 'Error al modificar cantidad', 'error')
+  }
+}
   return (
     <div className={styles.page}>
       <Topbar tab={tab} setTab={setTab} tabs={tabs} />
@@ -473,8 +525,42 @@ const agregarAlCarrito = (producto, modificador = null) => {
                       .filter(item => item.estado_cocina !== 'cancelado') // Oculta platillos ya cancelados
                       .map(item => (
                         <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', padding: '4px 0' }}>
+                          
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                            <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '14px' }}>{item.cantidad}x</span>
+                            {/* ⚙️ CONTROLES DE CANTIDAD (- / +) */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-card-neutral)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-neutral)' }}>
+                                <button
+                                  type="button"
+                                  style={{ border: 'none', background: 'none', cursor: item.cantidad <= 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)', opacity: item.cantidad <= 1 ? 0.3 : 1 }}
+                                  disabled={item.cantidad <= 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    modificarCantidadItem(orden.id, item.id, item.cantidad - 1);
+                                  }}
+                                  title="Reducir cantidad"
+                                >
+                                  −
+                                </button>
+                                
+                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '14px', minWidth: '16px', textAlign: 'center' }}>
+                                  {item.cantidad}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    modificarCantidadItem(orden.id, item.id, item.cantidad + 1);
+                                  }}
+                                  title="Aumentar cantidad"
+                                >
+                                  +
+                                </button>
+                            </div>
+
                             <span style={{ color: 'var(--text-main)', fontSize: '14px' }}>{item.producto_nombre}</span>
                             {item.comensal && (
                               <span className={styles['badge-blue']}>
@@ -482,6 +568,7 @@ const agregarAlCarrito = (producto, modificador = null) => {
                               </span>
                             )}
                           </div>
+
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className={`badge ${item.estado_cocina === 'listo' ? styles['badge-green'] : item.estado_cocina === 'preparando' ? styles['badge-amber'] : styles['badge-gray']}`}>
                               {(item.estado_cocina || 'pendiente').toUpperCase()}
@@ -490,16 +577,17 @@ const agregarAlCarrito = (producto, modificador = null) => {
                               ${((item.precio_unitario || 0) * item.cantidad).toFixed(2)}
                             </span>
 
-                            {/* ❌ BOTÓN PARA CANCELAR ÍTEM INDIVIDUAL */}
+                            {/* ❌ BOTÓN PARA CANCELAR ÍTEM INDIVIDUAL COMPLETO */}
                             <button 
                               className={styles['btn-quitar']} 
                               style={{ padding: '2px 6px', fontSize: '12px', cursor: 'pointer' }}
                               onClick={() => setItemACancelar({ ordenId: orden.id, item })}
-                              title="Cancelar este platillo"
+                              title="Cancelar este platillo completamente"
                             >
                               ✕
                             </button>
                           </div>
+
                         </div>
                       ))}
                   </div>
