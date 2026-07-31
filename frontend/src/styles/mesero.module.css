@@ -1012,6 +1012,30 @@ page .modal-orden-grid div[style*="flex: 1"][style*="gridTemplateColumns: 1fr 1f
   border-color: var(--color-primary-hover);
 }
 
+.btn-quitar-item {
+  background-color: var(--color-primary);
+  color: #ffffff; /* Rojo para acciones destructivas */
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-quitar-item:hover {
+  background-color: var(--color-primary-hover);
+  color: #ffffff;
+}
+
+.btn-quitar-item:active {
+  transform: scale(0.95);
+}
+
 /* MEDIA QUERIES (Se mantienen las estructuras intactas heredando variables) */
 @media (min-width: 577px) and (max-width: 992px) {
   .page .content {
