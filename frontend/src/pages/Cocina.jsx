@@ -273,7 +273,15 @@ useEffect(() => {
                                 </span>
                               )}
                             </div>
+                            
                             {item.modificador && <div className={styles.mod}>▸ {item.modificador}</div>}
+
+                            {(item.producto?.toLowerCase().includes('menudo') && item.producto?.toLowerCase().includes('llevar')) && (
+                              <div style={{ color: 'var(--color-primary)', fontSize: '13px', fontWeight: 600, marginTop: '2px' }}>
+                                ▸ Cantidad: ${(item.precio_unitario || item.precio || 0).toFixed(2)}
+                              </div>
+                            )}
+
                             {item.comentario && <div className={styles.comment}>💬 {item.comentario}</div>}
                           </div>
                           
