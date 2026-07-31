@@ -522,43 +522,74 @@ const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
                     </div>
                     
                     {[...orden.items]
-                      .filter(item => item.estado_cocina !== 'cancelado') // Oculta platillos ya cancelados
-                      .map(item => (
+                    .filter(item => item.estado_cocina !== 'cancelado')
+                    .map(item => {
+                      // 🛑 Determinar si la modificación está bloqueada
+                      const estaBloqueado = item.estado_cocina === 'preparando' || item.estado_cocina === 'listo';
+
+                      return (
                         <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', padding: '4px 0' }}>
                           
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                            {/* ⚙️ CONTROLES DE CANTIDAD (- / +) */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-card-neutral)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--border-neutral)' }}>
-                                <button
-                                  type="button"
-                                  style={{ border: 'none', background: 'none', cursor: item.cantidad <= 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)', opacity: item.cantidad <= 1 ? 0.3 : 1 }}
-                                  disabled={item.cantidad <= 1}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    modificarCantidadItem(orden.id, item.id, item.cantidad - 1);
-                                  }}
-                                  title="Reducir cantidad"
-                                >
-                                  −
-                                </button>
-                                
-                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '14px', minWidth: '16px', textAlign: 'center' }}>
-                                  {item.cantidad}
-                                </span>
+                            
+                            {/* ⚙️ CONTROLES DE CANTIDAD (+ / -) */}
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '4px', 
+                              background: estaBloqueado ? 'var(--bg-card-disabled, #f0f0f0)' : 'var(--bg-card-neutral)', 
+                              padding: '2px 6px', 
+                              borderRadius: '6px', 
+                              border: '1px solid var(--border-neutral)',
+                              opacity: estaBloqueado ? 0.6 : 1
+                            }}>
+                              <button
+                                type="button"
+                                style={{ 
+                                  border: 'none', 
+                                  background: 'none', 
+                                  cursor: (item.cantidad <= 1 || estaBloqueado) ? 'not-allowed' : 'pointer', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '14px', 
+                                  color: 'var(--text-main)', 
+                                  opacity: (item.cantidad <= 1 || estaBloqueado) ? 0.3 : 1 
+                                }}
+                                disabled={item.cantidad <= 1 || estaBloqueado}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  modificarCantidadItem(orden.id, item.id, item.cantidad - 1);
+                                }}
+                                title={estaBloqueado ? "No se puede modificar platillos en preparación o listos" : "Reducir cantidad"}
+                              >
+                                −
+                              </button>
+                              
+                              <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', fontSize: '14px', minWidth: '16px', textAlign: 'center' }}>
+                                {item.cantidad}
+                              </span>
 
-                                <button
-                                  type="button"
-                                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    modificarCantidadItem(orden.id, item.id, item.cantidad + 1);
-                                  }}
-                                  title="Aumentar cantidad"
-                                >
-                                  +
-                                </button>
+                              <button
+                                type="button"
+                                style={{ 
+                                  border: 'none', 
+                                  background: 'none', 
+                                  cursor: estaBloqueado ? 'not-allowed' : 'pointer', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '14px', 
+                                  color: 'var(--text-main)',
+                                  opacity: estaBloqueado ? 0.3 : 1
+                                }}
+                                disabled={estaBloqueado}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  modificarCantidadItem(orden.id, item.id, item.cantidad + 1);
+                                }}
+                                title={estaBloqueado ? "No se puede modificar platillos en preparación o listos" : "Aumentar cantidad"}
+                              >
+                                +
+                              </button>
                             </div>
 
                             <span style={{ color: 'var(--text-main)', fontSize: '14px' }}>{item.producto_nombre}</span>
@@ -574,21 +605,36 @@ const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
                               {(item.estado_cocina || 'pendiente').toUpperCase()}
                             </span>
                             <span style={{ color: 'var(--text-main)', fontSize: '14px', fontWeight: 500 }}>
-                              ${((item.precio_unitario || 0) * item.cantidad).toFixed(2)}
+                              ${((Number(item.precio_unitario) || 0) * (Number(item.cantidad) || 1)).toFixed(2)}
                             </span>
 
-                            {/* ❌ BOTÓN PARA CANCELAR ÍTEM INDIVIDUAL COMPLETO */}
+                            {/* ❌ CANCELAR ÍTEM COMPLETO */}
                             <button 
-                              className={styles['btn-quitar-item']} 
-                              onClick={() => setItemACancelar({ ordenId: orden.id, item })}
-                              title="Cancelar este platillo completamente"
+                              className={styles['btn-quitar']} 
+                              style={{ 
+                                padding: '2px 6px', 
+                                fontSize: '12px', 
+                                cursor: estaBloqueado ? 'not-allowed' : 'pointer',
+                                opacity: estaBloqueado ? 0.4 : 1
+                              }}
+                              disabled={estaBloqueado}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (estaBloqueado) {
+                                  toast('No se puede cancelar un platillo que ya está en preparación o listo', 'warning');
+                                  return;
+                                }
+                                setItemACancelar({ ordenId: orden.id, item });
+                              }}
+                              title={estaBloqueado ? "Platillo en preparación/listo" : "Cancelar este platillo"}
                             >
                               ✕
                             </button>
                           </div>
 
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 ))
               }

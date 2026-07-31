@@ -181,6 +181,9 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
     await manager.notify_meseros({"tipo": "orden_creada", "orden": orden_out})
     return orden_out
 
+# ==========================================
+# MODIFICAR CANTIDAD DE UN ÍTEM EN ORDEN
+# ==========================================
 @router.put("/{orden_id}/items/{item_id}/cantidad")
 async def modificar_cantidad_item(
     orden_id: int,
@@ -192,7 +195,7 @@ async def modificar_cantidad_item(
     if nueva_cantidad <= 0:
         raise HTTPException(
             status_code=400, 
-            detail="La cantidad debe ser al menos 1. Si deseas cancelar todo el ítem, usa la opción de cancelar."
+            detail="La cantidad debe ser al menos 1. Si deseas cancelar el ítem completo, usa la opción correspondiente."
         )
 
     orden = db.query(Orden).filter(Orden.id == orden_id).first()
@@ -203,8 +206,15 @@ async def modificar_cantidad_item(
     if not item:
         raise HTTPException(status_code=404, detail="Ítem no encontrado en esta orden")
 
+    # 🛑 VALIDACIÓN DE ESTADOS BLOQUEADOS
     if item.estado_cocina == "cancelado":
-        raise HTTPException(status_code=400, detail="No se puede modificar la cantidad de un ítem cancelado")
+        raise HTTPException(status_code=400, detail="No se puede modificar la cantidad de un ítem cancelado.")
+
+    if item.estado_cocina in ["preparando", "listo"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se puede modificar la cantidad porque el pedido ya está en estado '{item.estado_cocina.upper()}'."
+        )
 
     diferencia = nueva_cantidad - item.cantidad
     if diferencia == 0:
@@ -215,7 +225,6 @@ async def modificar_cantidad_item(
     # Reajustar inventario según el cambio de cantidad
     if producto:
         if diferencia > 0:
-            # Si quiere más piezas, validamos que haya suficiente stock disponible
             if producto.stock < diferencia:
                 raise HTTPException(
                     status_code=400, 
@@ -224,15 +233,14 @@ async def modificar_cantidad_item(
             producto.stock -= diferencia
             motivo = "incremento_cantidad_orden"
         else:
-            # Si reduce la cantidad, devolvemos las piezas sobrantes al inventario
             producto.stock += abs(diferencia)
             motivo = "reduccion_cantidad_orden"
 
         db.add(InventarioMovimiento(
-        producto_id=producto.id,
-        cantidad_delta=-diferencia,
-        motivo=motivo
-    ))
+            producto_id=producto.id,
+            cantidad_delta=-diferencia,
+            motivo=motivo
+        ))
 
     # Actualizar la cantidad en la orden
     item.cantidad = nueva_cantidad
@@ -242,7 +250,11 @@ async def modificar_cantidad_item(
     orden.total = sum((i.precio_unitario or 0.0) * i.cantidad for i in items_activos)
 
     db.commit()
+
+    # Obtener el nombre de la mesa
     nombre_mesa = orden.mesa.nombre if (orden.mesa and orden.mesa.nombre) else f"Mesa {orden.mesa_id}"
+
+    # Notificación vía WebSockets
     payload = {
         "tipo": "item_cantidad_modificada",
         "orden_id": orden.id,
@@ -250,7 +262,7 @@ async def modificar_cantidad_item(
         "nueva_cantidad": item.cantidad,
         "nuevo_total": orden.total,
         "producto_nombre": producto.nombre if producto else "",
-        "mesa": nombre_mesa 
+        "mesa": nombre_mesa
     }
 
     await manager.notify_meseros(payload)
