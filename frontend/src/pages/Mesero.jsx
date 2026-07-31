@@ -579,8 +579,7 @@ const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
 
                             {/* ❌ BOTÓN PARA CANCELAR ÍTEM INDIVIDUAL COMPLETO */}
                             <button 
-                              className={styles['btn-quitar']} 
-                              style={{ padding: '2px 6px', fontSize: '12px', cursor: 'pointer' }}
+                              className={styles['btn-quitar-item']} 
                               onClick={() => setItemACancelar({ ordenId: orden.id, item })}
                               title="Cancelar este platillo completamente"
                             >

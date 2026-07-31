@@ -141,9 +141,10 @@ async def crear_orden(data: OrdenCreate, db: Session = Depends(get_db)):
             "item_id": item.id,
             "producto": producto.nombre,
             "cantidad": item_data.cantidad,
-            "modificador": None,
+            "modificador": mod.nombre if 'mod' in locals() and mod else None, 
             "comentario": item_data.comentario,
             "comensal": item.comensal,
+            "precio_unitario": precio,
         })
 
     # Actualizar estado de mesa
@@ -308,6 +309,7 @@ async def agregar_items(orden_id: int, items_data: List[dict], db: Session = Dep
             "cantidad": item.cantidad,
             "comentario": item.comentario,
             "comensal": item.comensal,
+            "precio_unitario": item.precio_unitario,
         })
 
     db.commit()
@@ -399,6 +401,13 @@ async def cancelar_item_orden(
         "orden_cancelada_completa": orden_cancelada_completa,
         "nuevo_total": orden.total
     }
+
+    if orden_cancelada_completa and orden.mesa:
+        payload["mesa"] = {
+            "id": orden.mesa.id,
+            "nombre": orden.mesa.nombre,
+            "estado": orden.mesa.estado
+        }
     
     await manager.notify_meseros(payload)
     if producto and producto.estacion:
@@ -548,6 +557,7 @@ def ordenes_cocina(estacion: str, db: Session = Depends(get_db)):
             "comentario": item.comentario,
             "estado_cocina": item.estado_cocina,
             "comensal": item.comensal,
+            "precio_unitario": item.precio_unitario,
         })
     return result
 
