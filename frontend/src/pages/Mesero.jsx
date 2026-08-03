@@ -610,13 +610,7 @@ const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
 
                             {/* ❌ CANCELAR ÍTEM COMPLETO */}
                             <button 
-                              className={styles['btn-quitar']} 
-                              style={{ 
-                                padding: '2px 6px', 
-                                fontSize: '12px', 
-                                cursor: estaBloqueado ? 'not-allowed' : 'pointer',
-                                opacity: estaBloqueado ? 0.4 : 1
-                              }}
+                              className={styles['btn-quitar-item']}
                               disabled={estaBloqueado}
                               onClick={(e) => {
                                 e.stopPropagation();
