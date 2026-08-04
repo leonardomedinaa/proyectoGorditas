@@ -401,7 +401,14 @@ async def cancelar_item_orden(
         orden.estado = "cancelada"
         orden_cancelada_completa = True
         if orden.mesa:
-            orden.mesa.estado = "disponible"
+            otras_ordenes_activas = db.query(Orden).filter(
+                Orden.mesa_id == orden.mesa_id,
+                Orden.estado == "abierta",
+                Orden.id != orden.id
+            ).count()
+
+            if otras_ordenes_activas == 0:
+                orden.mesa.estado = "disponible"
 
     db.commit()
 
@@ -457,7 +464,14 @@ async def cancelar_orden_completa(
 
     orden.estado = "cancelada"
     if orden.mesa:
-        orden.mesa.estado = "disponible"
+        otras_ordenes_activas = db.query(Orden).filter(
+            Orden.mesa_id == orden.mesa_id,
+            Orden.estado == "abierta",
+            Orden.id != orden.id
+        ).count()
+
+        if otras_ordenes_activas == 0:
+            orden.mesa.estado = "disponible"
 
     db.commit()
 
