@@ -153,18 +153,21 @@ useEffect(() => {
   }, [])
 
   const cancelarOrden = async () => {
-    if (!ordenACancelar) return;
-    try {
-      await api.post(`/ordenes/${ordenACancelar.id}/cancelar`, { mesero_id: user.id });
-      toast('Orden cancelada correctamente', 'info');
-      setOrdenes(prev => prev.filter(o => o.id !== ordenACancelar.id));
-      cargarDatos();
-    } catch (e) {
-      toast(e.response?.data?.detail || e.message || 'Error al cancelar la orden', 'error');
-    } finally {
-      setOrdenACancelar(null);
-    }
-  };
+  if (!ordenACancelar) return;
+  try {
+    await api.post(`/ordenes/${ordenACancelar.id}/cancelar`, { 
+      mesero_id: user.id 
+    });
+    toast('Orden cancelada correctamente', 'info');
+    setOrdenes(prev => prev.filter(o => o.id !== ordenACancelar.id));
+    cargarDatos();
+  } catch (e) {
+    console.error("Error al cancelar orden:", e);
+    toast(e.response?.data?.detail || e.message || 'Error al cancelar la orden', 'error');
+  } finally {
+    setOrdenACancelar(null);
+  }
+};
   const cancelarItem = async () => {
     if (!itemACancelar) return
     try {
@@ -172,7 +175,6 @@ useEffect(() => {
         mesero_id: user.id
       })
       toast('Platillo cancelado correctamente', 'info')
-      // No hace falta llamar a cargarDatos() aquí porque el WS se encarga de actualizar el estado
     } catch (e) {
       toast(e.response?.data?.detail || e.message || 'Error al cancelar el platillo', 'error')
     } finally {
@@ -608,19 +610,11 @@ const modificarCantidadItem = async (ordenId, itemId, nuevaCantidad) => {
                               ${((Number(item.precio_unitario) || 0) * (Number(item.cantidad) || 1)).toFixed(2)}
                             </span>
 
-                            {/* ❌ CANCELAR ÍTEM COMPLETO */}
                             <button 
                               className={styles['btn-quitar-item']}
-                              disabled={estaBloqueado}
                               onClick={(e) => {
-                                e.stopPropagation();
-                                if (estaBloqueado) {
-                                  toast('No se puede cancelar un platillo que ya está en preparación o listo', 'warning');
-                                  return;
-                                }
                                 setItemACancelar({ ordenId: orden.id, item });
                               }}
-                              title={estaBloqueado ? "Platillo en preparación/listo" : "Cancelar este platillo"}
                             >
                               ✕
                             </button>
