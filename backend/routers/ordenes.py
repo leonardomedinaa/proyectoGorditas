@@ -381,7 +381,7 @@ async def cancelar_item_orden(
 
     producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
 
-    if item.estado_cocina in ["preparando", "listo"]:
+    if item.estado_cocina in ["pendiente"]:
         if producto:
             producto.stock += item.cantidad
             mov = InventarioMovimiento(
@@ -450,7 +450,7 @@ async def cancelar_orden_completa(
         raise HTTPException(status_code=400, detail="La orden ya fue cancelada previamente")
 
     for item in orden.items:
-        if item.estado_cocina in ["preparando", "listo"]:
+        if item.estado_cocina in ["pendiente"]:
             producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
             if producto:
                 producto.stock += item.cantidad
